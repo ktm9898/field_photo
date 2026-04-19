@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>상권 현장 촬영</title>
+    <meta name="description" content="상권 현장방문 사진 촬영 및 GPS 마커 등록 시스템">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=yunk7qz7lm&submodules=geocoder"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #0f172a;
+            overflow: hidden;
+        }
+
+        /* ── 지도 ── */
+        #map {
+            width: 100%; height: 100vh;
+            position: relative;
+        }
+
+        /* ── 상단 헤더 바 ── */
+        #top-bar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        #top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #top-bar-title {
+            font-size: 15px;
+            font-weight: 900;
+            color: #f1f5f9;
+            letter-spacing: -0.3px;
+        }
+
+        #top-bar-sub {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* ── 촬영자 칩 ── */
+        #photographer-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(59,130,246,0.15);
+            border: 1px solid rgba(59,130,246,0.3);
+            border-radius: 20px;
+            padding: 5px 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #photographer-chip:hover {
+            background: rgba(59,130,246,0.25);
+        }
+
+        #photographer-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #93c5fd;
+        }
+
+        #photographer-icon {
+            font-size: 14px;
+        }
+
+        /* ── 관리자 링크 ── */
+        #admin-link {
+            font-size: 11px;
+            font-weight: 700;
+            color: #64748b;
+            text-decoration: none;
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            border: 1px solid rgba(100,116,139,0.2);
+        }
+
+        #admin-link:hover {
+            color: #94a3b8;
+            background: rgba(100,116,139,0.1);
+        }
+
+        /* ── 하단 플로팅 버튼 영역 ── */
+        #bottom-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 0; right: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 0 20px;
+        }
+
+        /* 내 위치 버튼 */
+        #my-location-btn {
+            width: 48px; height: 48px;
+            background: white;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        #my-location-btn:hover { transform: scale(1.05); }
+        #my-location-btn:active { transform: scale(0.95); }
+
+        /* 메인 촬영 버튼 */
+        #capture-btn {
+            width: 72px; height: 72px;
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            border-radius: 50%;
+            border: 4px solid white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 6px 25px rgba(59,130,246,0.5), 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        #capture-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(59,130,246,0.7), 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        #capture-btn:active { transform: scale(0.92); }
+
+        #capture-btn svg { width: 32px; height: 32px; fill: white; }
+
+        /* 연속 촬영 토글 버튼 */
+        #continuous-btn {
+            width: 48px; height: 48px;
+            background: white;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+            position: relative;
+        }
+
+        #continuous-btn.active {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        #continuous-btn:hover { transform: scale(1.05); }
+        #continuous-btn:active { transform: scale(0.95); }
+
+        #continuous-label {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 9px;
+            font-weight: 700;
+            color: #64748b;
+            white-space: nowrap;
+        }
+
+        #continuous-btn.active #continuous-label {
+            color: #10b981;
+        }
+
+        /* ── 바텀시트 ── */
+        #bottom-sheet-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(4px);
+        }
+
+        #bottom-sheet-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        #bottom-sheet {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 2001;
+            background: #1e293b;
+            border-radius: 20px 20px 0 0;
+            padding: 0 20px 40px;
+            transform: translateY(100%);
+            transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        #bottom-sheet.open {
+            transform: translateY(0);
+        }
+
+        .sheet-handle {
+            width: 40px; height: 4px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 2px;
+            margin: 14px auto 20px;
+        }
+
+        .sheet-title {
+            font-size: 16px;
+            font-weight: 900;
+            color: #f1f5f9;
+            margin-bottom: 6px;
+        }
+
+        .sheet-subtitle {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        /* 사진 미리보기 */
+        #photo-preview-container {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #0f172a;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #photo-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        #photo-preview-placeholder {
+            text-align: center;
+        }
+
+        #photo-preview-placeholder p {
+            font-size: 12px;
+            color: #475569;
+            margin-top: 8px;
+            font-weight: 600;
+        }
+
+        /* GPS 정보 뱃지 */
+        #gps-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 16px;
+        }
+
+        #gps-badge span {
+            font-size: 11px;
+            font-weight: 700;
+            color: #34d399;
+        }
+
+        #gps-badge.no-gps {
+            background: rgba(239,68,68,0.1);
+            border-color: rgba(239,68,68,0.2);
+        }
+
+        #gps-badge.no-gps span { color: #f87171; }
+
+        /* 입력 필드 */
+        .field-group {
+            margin-bottom: 14px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            display: block;
+        }
+
+        .required-dot {
+            color: #f87171;
+            margin-left: 3px;
+        }
+
+        .field-input {
+            width: 100%;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #f1f5f9;
+            outline: none;
+            font-family: 'Noto Sans KR', sans-serif;
+            transition: border-color 0.2s;
+        }
+
+        .field-input:focus {
+            border-color: rgba(59,130,246,0.5);
+            background: rgba(59,130,246,0.05);
+        }
+
+        .field-input::placeholder { color: #475569; }
+
+        textarea.field-input {
+            resize: none;
+            height: 80px;
+        }
+
+        /* 업로드 버튼 */
+        #upload-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 900;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+            font-family: 'Noto Sans KR', sans-serif;
+            box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+        }
+
+        #upload-btn:hover { filter: brightness(1.1); }
+        #upload-btn:active { transform: scale(0.98); }
+        #upload-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #cancel-btn {
+            width: 100%;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        #cancel-btn:hover { background: rgba(255,255,255,0.05); color: #94a3b8; }
+
+        /* ── 촬영자 설정 모달 ── */
+        #photographer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: opacity 0.3s;
+        }
+
+        #photographer-overlay.hidden { display: none; }
+
+        #photographer-modal {
+            background: #1e293b;
+            border-radius: 20px;
+            padding: 28px 24px;
+            width: 100%;
+            max-width: 360px;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        #photographer-modal h2 {
+            font-size: 18px;
+            font-weight: 900;
+            color: #f1f5f9;
+            margin: 0 0 6px;
+        }
+
+        #photographer-modal p {
+            font-size: 12px;
+            color: #64748b;
+            margin: 0 0 20px;
+            font-weight: 600;
+        }
+
+        #photographer-save-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 900;
+            color: white;
+            cursor: pointer;
+            margin-top: 4px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* ── 토스트 ── */
+        #toast {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            background: #1e293b;
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #f1f5f9;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 13px;
+            font-weight: 700;
+            z-index: 9999;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        #toast.success { border-color: rgba(16,185,129,0.4); }
+        #toast.error { border-color: rgba(239,68,68,0.4); }
+        #toast.info { border-color: rgba(59,130,246,0.4); }
+
+        /* ── 로딩 ── */
+        #loading-screen {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        #loading-screen h1 {
+            font-size: 20px;
+            font-weight: 900;
+            color: #f1f5f9;
+            margin: 0;
+        }
+
+        #loading-screen p {
+            font-size: 13px;
+            color: #64748b;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .spinner {
+            width: 36px; height: 36px;
+            border: 3px solid rgba(59,130,246,0.2);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── 마커 팝업 (InfoWindow) ── */
+        .marker-popup {
+            padding: 14px;
+            width: 240px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        .popup-biz {
+            font-size: 13px;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .popup-meta {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .popup-thumb-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+
+        .popup-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .popup-thumb:hover { opacity: 0.85; }
+
+        .popup-count-badge {
+            font-size: 10px;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 8px;
+        }
+
+        .popup-add-btn {
+            width: 100%;
+            padding: 8px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #3b82f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .popup-add-btn:hover { background: #dbeafe; }
+
+        /* 업로드 진행 오버레이 */
+        #upload-progress-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 4000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            display: none;
+        }
+
+        #upload-progress-overlay.show { display: flex; }
+
+        #upload-progress-overlay p {
+            font-size: 14px;
+            font-weight: 700;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 로딩 화면 -->
+    <div id="loading-screen">
+        <div class="spinner"></div>
+        <h1>📷 상권 현장 촬영</h1>
+        <p>지도를 불러오는 중...</p>
+    </div>
+
+    <!-- 업로드 진행 오버레이 -->
+    <div id="upload-progress-overlay">
+        <div class="spinner"></div>
+        <p id="upload-progress-text">사진을 업로드하는 중...</p>
+    </div>
+
+    <!-- 토스트 -->
+    <div id="toast"><span id="toast-icon">✓</span><span id="toast-msg"></span></div>
+
+    <!-- 상단 헤더 -->
+    <div id="top-bar">
+        <div id="top-bar-left">
+            <div>
+                <div id="top-bar-title">📷 현장 촬영</div>
+                <div id="top-bar-sub">상권 방문 사진 기록</div>
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div id="photographer-chip" onclick="showPhotographerModal()">
+                <span id="photographer-icon">👤</span>
+                <span id="photographer-name">이름 설정</span>
+            </div>
+            <a href="admin.html" id="admin-link">관리자 →</a>
+        </div>
+    </div>
+
+    <!-- 지도 -->
+    <div id="map"></div>
+
+    <!-- 하단 컨트롤 -->
+    <div id="bottom-controls">
+        <!-- 내 위치 -->
+        <button id="my-location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="#3b82f6">
+                <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/>
+            </svg>
+        </button>
+
+        <!-- 메인 촬영 버튼 -->
+        <button id="capture-btn" onclick="onCaptureClick()" title="현장 촬영">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm7-13H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5.5a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1h.586l1-1.5H17.5l.914 1.5H19a1 1 0 0 1 1 1V17.5z"/>
+            </svg>
+        </button>
+
+        <!-- 연속 촬영 토글 -->
+        <button id="continuous-btn" onclick="toggleContinuous()" title="연속 촬영 모드">
+            <span id="continuous-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="#64748b">
+                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                </svg>
+            </span>
+            <span id="continuous-label">연속</span>
+        </button>
+    </div>
+
+    <!-- 촬영자 설정 모달 -->
+    <div id="photographer-overlay">
+        <div id="photographer-modal">
+            <h2>📋 촬영자 설정</h2>
+            <p>이름을 입력하면 이후 자동으로 적용됩니다</p>
+            <div class="field-group">
+                <label class="field-label">이름<span class="required-dot">*</span></label>
+                <input type="text" id="photographer-input" class="field-input" placeholder="예: 홍길동" maxlength="20">
+            </div>
+            <button id="photographer-save-btn" onclick="savePhotographer()">확인</button>
+        </div>
+    </div>
+
+    <!-- 바텀시트 오버레이 -->
+    <div id="bottom-sheet-overlay" onclick="closeBottomSheet()"></div>
+
+    <!-- 바텀시트 -->
+    <div id="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">📸 사진 정보 입력</div>
+        <div class="sheet-subtitle" id="sheet-datetime"></div>
+
+        <!-- 사진 미리보기 -->
+        <div id="photo-preview-container">
+            <img id="photo-preview" alt="촬영 사진">
+            <div id="photo-preview-placeholder">
+                <div style="font-size:36px;">📷</div>
+                <p>사진을 촬영하면<br>여기에 표시됩니다</p>
+            </div>
+        </div>
+
+        <!-- GPS 뱃지 -->
+        <div id="gps-badge">
+            <span>📍</span>
+            <span id="gps-text">위치 획득 중...</span>
+        </div>
+
+        <!-- 입력 필드 -->
+        <div class="field-group">
+            <label class="field-label">업체번호<span class="required-dot">*</span></label>
+            <input type="text" id="input-biz" class="field-input" placeholder="예: 2026-001" maxlength="30">
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">촬영자<span class="required-dot">*</span></label>
+            <input type="text" id="input-photographer" class="field-input" placeholder="이름 입력" maxlength="20">
+        </div>
+
+        <div class="field-group">
+            <label class="field-label">메모</label>
+            <textarea id="input-memo" class="field-input" placeholder="예: 정문 사진, 간판 상태 양호 등"></textarea>
+        </div>
+
+        <button id="upload-btn" onclick="uploadPhoto()">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+            </svg>
+            업로드 완료
+        </button>
+        <button id="cancel-btn" onclick="closeBottomSheet()">취소</button>
+    </div>
+
+    <!-- 카메라 input (숨김) -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none">
+
+    <script>
+        // ─────────────────────────────────────────────
+        //  설정
+        // ─────────────────────────────────────────────
+        const APPS_SCRIPT_URL = '여기에_앱스스크립트_URL_붙여넣기';
+        const API_SECRET      = 'FieldPhoto2026!';
+
+        // ─────────────────────────────────────────────
+        //  상태 변수
+        // ─────────────────────────────────────────────
+        let map;
+        let myLocationMarker = null;
+        let infowindow = null;
+        let allMarkers = {};       // key: "lat,lng" → { marker, photos[] }
+        let currentPhoto = null;   // { dataUrl, blob, mimeType }
+        let currentGPS  = null;    // { lat, lng }
+        let isContinuous = false;
+        let pendingLatLng = null;  // 추가 촬영 시 고정 위치
+
+        // ─────────────────────────────────────────────
+        //  초기화
+        // ─────────────────────────────────────────────
+        window.onload = function () {
+            // 지도 초기화
+            map = new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(37.5365, 126.9780),
+                zoom: 15,
+                logoControl: false,
+                mapDataControl: false,
+            });
+
+            naver.maps.Event.addListener(map, 'click', () => {
+                if (infowindow) infowindow.close();
+            });
+
+            document.getElementById('loading-screen').style.display = 'none';
+
+            // GPS 추적 시작
+            startTracking();
+
+            // 촬영자 확인
+            const savedName = localStorage.getItem('photographer_name');
+            if (!savedName) {
+                showPhotographerModal();
+            } else {
+                document.getElementById('photographer-name').textContent = savedName;
+            }
+
+            // 카메라 input 이벤트
+            document.getElementById('camera-input').addEventListener('change', onPhotoSelected);
+        };
+
+        // ─────────────────────────────────────────────
+        //  GPS 추적
+        // ─────────────────────────────────────────────
+        function startTracking() {
+            if (!navigator.geolocation) return;
+            navigator.geolocation.watchPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lng = pos.coords.longitude;
+                    currentGPS = { lat, lng };
+
+                    const latLng = new naver.maps.LatLng(lat, lng);
+                    if (!myLocationMarker) {
+                        myLocationMarker = new naver.maps.Marker({
+                            position: latLng,
+                            map,
+                            icon: {
+                                content: '<div style="width:16px;height:16px;background:#3b82f6;border:3px solid white;border-radius:50%;box-shadow:0 0 12px rgba(59,130,246,0.8);"></div>',
+                                anchor: new naver.maps.Point(8, 8)
+                            },
+                            zIndex: 1000
+                        });
+                        map.setCenter(latLng);
+                    } else {
+                        myLocationMarker.setPosition(latLng);
+                    }
+                },
+                (err) => console.warn('GPS 오류:', err),
+                { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
+            );
+        }
+
+        window.moveToMyLocation = function () {
+            if (myLocationMarker) {
+                map.panTo(myLocationMarker.getPosition());
+                map.setZoom(17);
+            } else {
+                showToast('📍 위치를 불러오는 중입니다...', 'info');
+            }
+        };
+
+        // ─────────────────────────────────────────────
+        //  촬영 버튼 클릭
+        // ─────────────────────────────────────────────
+        function onCaptureClick() {
+            if (!currentGPS) {
+                showToast('⚠️ GPS를 아직 수신하지 못했습니다. 잠시 기다려주세요.', 'error');
+                return;
+            }
+            pendingLatLng = null; // 새 위치에서 촬영
+            document.getElementById('camera-input').click();
+        }
+
+        // ─────────────────────────────────────────────
+        //  사진 선택 후 처리
+        // ─────────────────────────────────────────────
+        function onPhotoSelected(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // 리사이즈 후 미리보기
+            resizeImage(file, 1920).then(({ dataUrl, blob, mimeType }) => {
+                currentPhoto = { dataUrl, blob, mimeType };
+                // 미리보기 표시
+                const preview = document.getElementById('photo-preview');
+                preview.src = dataUrl;
+                preview.style.display = 'block';
+                document.getElementById('photo-preview-placeholder').style.display = 'none';
+                // 날짜 표시
+                const now = new Date();
+                document.getElementById('sheet-datetime').textContent =
+                    `${now.toLocaleDateString('ko-KR')} ${now.toLocaleTimeString('ko-KR')}`;
+                // GPS 뱃지 업데이트
+                if (currentGPS) {
+                    document.getElementById('gps-text').textContent =
+                        `위도 ${currentGPS.lat.toFixed(6)}, 경도 ${currentGPS.lng.toFixed(6)}`;
+                    document.getElementById('gps-badge').classList.remove('no-gps');
+                } else {
+                    document.getElementById('gps-text').textContent = 'GPS 좌표 없음';
+                    document.getElementById('gps-badge').classList.add('no-gps');
+                }
+                // 촬영자 자동 채우기
+                const savedName = localStorage.getItem('photographer_name') || '';
+                document.getElementById('input-photographer').value = savedName;
+                // 바텀시트 열기
+                openBottomSheet();
+            });
+
+            // Input 값 초기화 (동일 파일 재선택 허용)
+            e.target.value = '';
+        }
+
+        // ─────────────────────────────────────────────
+        //  이미지 리사이즈 (Canvas API)
+        // ─────────────────────────────────────────────
+        function resizeImage(file, maxSize) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let w = img.width, h = img.height;
+                        if (w > maxSize || h > maxSize) {
+                            if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+                            else       { w = Math.round(w * maxSize / h); h = maxSize; }
+                        }
+                        const canvas = document.createElement('canvas');
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        const mimeType = file.type || 'image/jpeg';
+                        const dataUrl = canvas.toDataURL(mimeType, 0.88);
+                        canvas.toBlob(blob => resolve({ dataUrl, blob, mimeType }), mimeType, 0.88);
+                    };
+                    img.src = ev.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // ─────────────────────────────────────────────
+        //  업로드
+        // ─────────────────────────────────────────────
+        async function uploadPhoto() {
+            const bizNumber    = document.getElementById('input-biz').value.trim();
+            const photographer = document.getElementById('input-photographer').value.trim();
+            const memo         = document.getElementById('input-memo').value.trim();
+
+            if (!bizNumber)    { showToast('⚠️ 업체번호를 입력해주세요.', 'error'); return; }
+            if (!photographer) { showToast('⚠️ 촬영자 이름을 입력해주세요.', 'error'); return; }
+            if (!currentPhoto) { showToast('⚠️ 사진이 없습니다.', 'error'); return; }
+
+            const gps = pendingLatLng || currentGPS;
+            if (!gps) { showToast('⚠️ GPS 좌표가 없습니다.', 'error'); return; }
+
+            // 이름 저장
+            localStorage.setItem('photographer_name', photographer);
+            document.getElementById('photographer-name').textContent = photographer;
+
+            // 진행 중 UI
+            setUploadUiLoading(true);
+
+            try {
+                // Base64 변환
+                const base64 = currentPhoto.dataUrl.split(',')[1];
+
+                const payload = {
+                    action:       'upload',
+                    key:          API_SECRET,
+                    imageBase64:  base64,
+                    mimeType:     currentPhoto.mimeType,
+                    bizNumber,
+                    photographer,
+                    memo,
+                    lat:          gps.lat,
+                    lng:          gps.lng,
+                    address:      ''
+                };
+
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+
+                if (result.success) {
+                    // 마커 추가/업데이트
+                    addOrUpdateMarker(gps.lat, gps.lng, {
+                        bizNumber, photographer, memo,
+                        datetime: new Date().toLocaleString('ko-KR'),
+                        photoUrl: result.fileUrl
+                    });
+                    closeBottomSheet();
+                    showToast(`✅ 업로드 완료! (${bizNumber})`, 'success');
+
+                    // 연속 촬영 모드이면 즉시 카메라 다시 열기
+                    if (isContinuous) {
+                        setTimeout(() => {
+                            pendingLatLng = gps; // 같은 위치 유지
+                            document.getElementById('camera-input').click();
+                        }, 800);
+                    }
+                } else {
+                    showToast('❌ 업로드 실패: ' + result.error, 'error');
+                }
+            } catch (err) {
+                showToast('❌ 오류 발생: ' + err.message, 'error');
+            } finally {
+                setUploadUiLoading(false);
+            }
+        }
+
+        function setUploadUiLoading(loading) {
+            const btn = document.getElementById('upload-btn');
+            const overlay = document.getElementById('upload-progress-overlay');
+            btn.disabled = loading;
+            btn.innerHTML = loading
+                ? '<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> 업로드 중...'
+                : '<svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg> 업로드 완료';
+            overlay.classList.toggle('show', loading);
+        }
+
+        // ─────────────────────────────────────────────
+        //  마커 추가 / 업데이트
+        // ─────────────────────────────────────────────
+        function addOrUpdateMarker(lat, lng, photoData) {
+            const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+
+            if (!allMarkers[key]) {
+                allMarkers[key] = { photos: [] };
+                const marker = new naver.maps.Marker({
+                    position: new naver.maps.LatLng(lat, lng),
+                    map,
+                    icon: {
+                        content: buildMarkerHtml(1),
+                        anchor: new naver.maps.Point(20, 40)
+                    },
+                    zIndex: 100
+                });
+                allMarkers[key].marker = marker;
+                naver.maps.Event.addListener(marker, 'click', () => showMarkerPopup(key));
+            }
+            allMarkers[key].photos.push(photoData);
+
+            // 마커 아이콘 갱신
+            const count = allMarkers[key].photos.length;
+            allMarkers[key].marker.setIcon({
+                content: buildMarkerHtml(count),
+                anchor: new naver.maps.Point(20, 40)
+            });
+        }
+
+        function buildMarkerHtml(count) {
+            const badge = count > 1
+                ? `<div style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid white;">${count}</div>`
+                : '';
+            return `<div style="position:relative;width:40px;height:40px;">
+                <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(59,130,246,0.5);border:2px solid white;"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:16px;">📷</div>
+                ${badge}
+            </div>`;
+        }
+
+        // ─────────────────────────────────────────────
+        //  마커 팝업
+        // ─────────────────────────────────────────────
+        function showMarkerPopup(key) {
+            if (infowindow) infowindow.close();
+            const entry = allMarkers[key];
+            if (!entry) return;
+
+            const photos = entry.photos;
+            const thumbs = photos.slice(0, 6).map(p =>
+                `<img class="popup-thumb" src="${p.photoUrl}" alt="사진" onclick="window.open('${p.photoUrl}','_blank')">`
+            ).join('');
+
+            const bizNumbers = [...new Set(photos.map(p => p.bizNumber))].join(', ');
+
+            const content = `<div class="marker-popup">
+                <div class="popup-biz">📋 ${bizNumbers}</div>
+                <div class="popup-meta">${photos[0].datetime || ''} · ${photos[0].photographer || ''}</div>
+                <div class="popup-count-badge">사진 ${photos.length}장</div>
+                <div class="popup-thumb-grid">${thumbs}</div>
+                <button class="popup-add-btn" onclick="addPhotoToMarker('${key}')">📷 이 위치에 추가 촬영</button>
+            </div>`;
+
+            infowindow = new naver.maps.InfoWindow({
+                content,
+                borderWidth: 0,
+                backgroundColor: 'transparent',
+                disableAnchor: true,
+                pixelOffset: new naver.maps.Point(0, -10)
+            });
+            infowindow.open(map, entry.marker);
+        }
+
+        window.addPhotoToMarker = function (key) {
+            if (infowindow) infowindow.close();
+            const [lat, lng] = key.split(',').map(Number);
+            pendingLatLng = { lat, lng };
+            document.getElementById('camera-input').click();
+        };
+
+        // ─────────────────────────────────────────────
+        //  연속 촬영 토글
+        // ─────────────────────────────────────────────
+        function toggleContinuous() {
+            isContinuous = !isContinuous;
+            const btn = document.getElementById('continuous-btn');
+            const svg = btn.querySelector('svg');
+            if (isContinuous) {
+                btn.classList.add('active');
+                svg.setAttribute('fill', 'white');
+                showToast('🔄 연속 촬영 모드 ON', 'info');
+            } else {
+                btn.classList.remove('active');
+                svg.setAttribute('fill', '#64748b');
+                showToast('연속 촬영 모드 OFF', 'info');
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        //  바텀시트
+        // ─────────────────────────────────────────────
+        function openBottomSheet() {
+            document.getElementById('bottom-sheet-overlay').classList.add('show');
+            document.getElementById('bottom-sheet').classList.add('open');
+        }
+
+        function closeBottomSheet() {
+            document.getElementById('bottom-sheet-overlay').classList.remove('show');
+            document.getElementById('bottom-sheet').classList.remove('open');
+            // 초기화
+            currentPhoto = null;
+            document.getElementById('photo-preview').style.display = 'none';
+            document.getElementById('photo-preview-placeholder').style.display = 'block';
+            document.getElementById('input-biz').value = '';
+            document.getElementById('input-memo').value = '';
+        }
+
+        // ─────────────────────────────────────────────
+        //  촬영자 설정
+        // ─────────────────────────────────────────────
+        function showPhotographerModal() {
+            const saved = localStorage.getItem('photographer_name') || '';
+            document.getElementById('photographer-input').value = saved;
+            document.getElementById('photographer-overlay').classList.remove('hidden');
+        }
+
+        function savePhotographer() {
+            const name = document.getElementById('photographer-input').value.trim();
+            if (!name) { showToast('⚠️ 이름을 입력해주세요.', 'error'); return; }
+            localStorage.setItem('photographer_name', name);
+            document.getElementById('photographer-name').textContent = name;
+            document.getElementById('photographer-overlay').classList.add('hidden');
+            showToast('✅ 촬영자 설정 완료', 'success');
+        }
+
+        // Enter 키로 저장
+        document.getElementById('photographer-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') savePhotographer();
+        });
+
+        // ─────────────────────────────────────────────
+        //  토스트
+        // ─────────────────────────────────────────────
+        let toastTimer = null;
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icons = { success: '✓', error: '✕', info: 'ℹ' };
+            document.getElementById('toast-icon').textContent = icons[type] || 'ℹ';
+            document.getElementById('toast-msg').textContent = message;
+            toast.className = `show ${type}`;
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.className = '', 3000);
+        }
+    </script>
+</body>
+
+</html>

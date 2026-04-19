@@ -1,0 +1,199 @@
+/**
+ * ============================================================
+ *  상권 현장방문 사진 관리 - Google Apps Script 백엔드
+ * ============================================================
+ *
+ *  [구글 시트 헤더 (A1~J1)]
+ *  촬영일시 | 촬영자 | 업체번호 | 위도 | 경도 | 주소 | 사진URL | 사진파일ID | 메모 | 파일명
+ *
+ *  [설정 방법]
+ *  1. 구글 시트 새로 만들기 → 확장 프로그램 > Apps Script
+ *  2. 이 코드 전체 붙여넣기
+ *  3. SPREADSHEET_ID, DRIVE_FOLDER_ID 설정
+ *  4. 배포 > 새 배포 > 웹앱 > 액세스: 모든 사용자
+ *  5. URL을 index.html, admin.html에 붙여넣기
+ * ============================================================
+ */
+
+// ── 설정 ───────────────────────────────────────────────────
+const SHEET_NAME   = 'Sheet1';
+const API_SECRET   = 'FieldPhoto2026!';        // index.html, admin.html 코드와 동일하게 유지
+const ADMIN_PW     = '2082';                   // 관리자 페이지 비밀번호
+
+// ★ 아래 두 값을 본인 환경에 맞게 수정하세요
+const SPREADSHEET_ID  = '';  // 구글 시트 URL에서 /d/ 뒤에 오는 긴 ID 값
+const DRIVE_FOLDER_ID = '';  // 구글 드라이브 폴더 URL에서 /folders/ 뒤 ID 값
+
+// ── 헬퍼 ───────────────────────────────────────────────────
+function jsonResponse(obj) {
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function unauthorizedResponse() {
+  return jsonResponse({ success: false, error: '잘못된 API 키입니다.' });
+}
+
+function getSheet() {
+  const ss = SPREADSHEET_ID
+    ? SpreadsheetApp.openById(SPREADSHEET_ID)
+    : SpreadsheetApp.getActiveSpreadsheet();
+  return ss.getSheetByName(SHEET_NAME);
+}
+
+function getRootFolder() {
+  return DRIVE_FOLDER_ID
+    ? DriveApp.getFolderById(DRIVE_FOLDER_ID)
+    : DriveApp.getRootFolder();
+}
+
+/**
+ * 날짜 문자열에 해당하는 서브폴더를 가져오거나 만들어 반환
+ * 예: 현장사진/2026-04-19/
+ */
+function getDateFolder(dateStr) {
+  const root = getRootFolder();
+  // 현장사진 폴더
+  let parentFolder;
+  const parentIter = root.getFoldersByName('현장사진');
+  if (parentIter.hasNext()) {
+    parentFolder = parentIter.next();
+  } else {
+    parentFolder = root.createFolder('현장사진');
+  }
+  // 날짜 서브폴더
+  const subIter = parentFolder.getFoldersByName(dateStr);
+  if (subIter.hasNext()) {
+    return subIter.next();
+  }
+  return parentFolder.createFolder(dateStr);
+}
+
+function formatDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatDateTime(d) {
+  const date = formatDateStr(d);
+  const h = String(d.getHours()).padStart(2, '0');
+  const min = String(d.getMinutes()).padStart(2, '0');
+  const s = String(d.getSeconds()).padStart(2, '0');
+  return `${date} ${h}:${min}:${s}`;
+}
+
+// ── doPost ─────────────────────────────────────────────────
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+
+    // 1) 관리자 조회 요청
+    if (data.action === 'getAll') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      if (data.pw !== ADMIN_PW) return jsonResponse({ success: false, error: '비밀번호가 틀렸습니다.' });
+      return handleGetAll();
+    }
+
+    // 2) 사진 업로드
+    if (data.action === 'upload') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleUpload(data);
+    }
+
+    return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
+
+  } catch (err) {
+    return jsonResponse({ success: false, error: err.toString() });
+  }
+}
+
+// GET 차단
+function doGet() {
+  return ContentService.createTextOutput('접근이 거부되었습니다.');
+}
+
+// ── 사진 업로드 처리 ─────────────────────────────────────────
+function handleUpload(data) {
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const now = new Date();
+  const dateStr    = formatDateStr(now);
+  const datetimeStr = formatDateTime(now);
+
+  // Base64 → Blob → 드라이브 저장
+  const base64Image = data.imageBase64 || '';
+  if (!base64Image) return jsonResponse({ success: false, error: '이미지 데이터가 없습니다.' });
+
+  // 파일명 생성: {업체번호}_{timestamp}.jpg
+  const bizNum  = (data.bizNumber || 'unknown').replace(/[^a-zA-Z0-9가-힣]/g, '_');
+  const ts      = now.getTime();
+  const mime    = data.mimeType || 'image/jpeg';
+  const ext     = mime.includes('png') ? 'png' : 'jpg';
+  const fileName = `${bizNum}_${ts}.${ext}`;
+
+  // 드라이브 폴더 → 파일 저장
+  const folder   = getDateFolder(dateStr);
+  const blob     = Utilities.newBlob(
+    Utilities.base64Decode(base64Image.replace(/^data:image\/\w+;base64,/, '')),
+    mime,
+    fileName
+  );
+  const file = folder.createFile(blob);
+
+  // 파일 공유 설정 (링크 보기 권한)
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  const fileId  = file.getId();
+  const fileUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
+
+  // 시트에 메타데이터 기록 (10열)
+  sheet.appendRow([
+    datetimeStr,                         // A: 촬영일시
+    data.photographer || '',             // B: 촬영자
+    data.bizNumber || '',                // C: 업체번호
+    data.lat || '',                      // D: 위도
+    data.lng || '',                      // E: 경도
+    data.address || '',                  // F: 주소
+    fileUrl,                             // G: 사진URL
+    fileId,                              // H: 사진파일ID
+    data.memo || '',                     // I: 메모
+    fileName                             // J: 파일명
+  ]);
+
+  return jsonResponse({
+    success: true,
+    fileUrl: fileUrl,
+    fileId:  fileId,
+    fileName: fileName
+  });
+}
+
+// ── 전체 데이터 조회 ─────────────────────────────────────────
+function handleGetAll() {
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  const records = values.map((row, idx) => ({
+    rowIndex:     idx + 2,
+    datetime:     row[0] ? String(row[0]) : '',
+    photographer: String(row[1] || ''),
+    bizNumber:    String(row[2] || ''),
+    lat:          row[3] !== '' ? Number(row[3]) : null,
+    lng:          row[4] !== '' ? Number(row[4]) : null,
+    address:      String(row[5] || ''),
+    photoUrl:     String(row[6] || ''),
+    fileId:       String(row[7] || ''),
+    memo:         String(row[8] || ''),
+    fileName:     String(row[9] || '')
+  })).filter(r => r.photoUrl); // URL 없는 행 제외
+
+  records.reverse(); // 최신순
+  return jsonResponse({ success: true, data: records, total: records.length });
+}
