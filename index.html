@@ -7,14 +7,23 @@
     <title>상권 현장 촬영</title>
     <meta name="description" content="상권 현장방문 사진 촬영 및 GPS 마커 등록 시스템">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=yunk7qz7lm&submodules=geocoder"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap"
+        rel="stylesheet">
+    <script type="text/javascript"
+        src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=yunk7qz7lm&submodules=geocoder"></script>
     <style>
-        *, *::before, *::after { box-sizing: border-box; }
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+        }
 
-        body, html {
-            margin: 0; padding: 0;
-            width: 100%; height: 100%;
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
             font-family: 'Noto Sans KR', sans-serif;
             background: #0f172a;
             overflow: hidden;
@@ -22,23 +31,26 @@
 
         /* ── 지도 ── */
         #map {
-            width: 100%; height: 100vh;
+            width: 100%;
+            height: 100vh;
             position: relative;
         }
 
         /* ── 상단 헤더 바 ── */
         #top-bar {
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
             padding: 10px 16px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             backdrop-filter: blur(12px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         #top-bar-left {
@@ -65,8 +77,8 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(59,130,246,0.15);
-            border: 1px solid rgba(59,130,246,0.3);
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
             border-radius: 20px;
             padding: 5px 12px;
             cursor: pointer;
@@ -74,7 +86,7 @@
         }
 
         #photographer-chip:hover {
-            background: rgba(59,130,246,0.25);
+            background: rgba(59, 130, 246, 0.25);
         }
 
         #photographer-name {
@@ -96,19 +108,20 @@
             padding: 5px 10px;
             border-radius: 8px;
             transition: all 0.2s;
-            border: 1px solid rgba(100,116,139,0.2);
+            border: 1px solid rgba(100, 116, 139, 0.2);
         }
 
         #admin-link:hover {
             color: #94a3b8;
-            background: rgba(100,116,139,0.1);
+            background: rgba(100, 116, 139, 0.1);
         }
 
         /* ── 하단 플로팅 버튼 영역 ── */
         #bottom-controls {
             position: fixed;
             bottom: 30px;
-            left: 0; right: 0;
+            left: 0;
+            right: 0;
             z-index: 1000;
             display: flex;
             align-items: center;
@@ -119,32 +132,39 @@
 
         /* 내 위치 버튼 */
         #my-location-btn {
-            width: 48px; height: 48px;
+            width: 48px;
+            height: 48px;
             background: white;
             border-radius: 50%;
             border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
             cursor: pointer;
             transition: all 0.2s;
             flex-shrink: 0;
         }
 
-        #my-location-btn:hover { transform: scale(1.05); }
-        #my-location-btn:active { transform: scale(0.95); }
+        #my-location-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #my-location-btn:active {
+            transform: scale(0.95);
+        }
 
         /* 메인 촬영 버튼 */
         #capture-btn {
-            width: 72px; height: 72px;
+            width: 72px;
+            height: 72px;
             background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             border-radius: 50%;
             border: 4px solid white;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 6px 25px rgba(59,130,246,0.5), 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.5), 0 2px 10px rgba(0, 0, 0, 0.3);
             cursor: pointer;
             transition: all 0.2s;
             flex-shrink: 0;
@@ -152,23 +172,30 @@
 
         #capture-btn:hover {
             transform: scale(1.05);
-            box-shadow: 0 8px 30px rgba(59,130,246,0.7), 0 2px 10px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 30px rgba(59, 130, 246, 0.7), 0 2px 10px rgba(0, 0, 0, 0.3);
         }
 
-        #capture-btn:active { transform: scale(0.92); }
+        #capture-btn:active {
+            transform: scale(0.92);
+        }
 
-        #capture-btn svg { width: 32px; height: 32px; fill: white; }
+        #capture-btn svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+        }
 
         /* 연속 촬영 토글 버튼 */
         #continuous-btn {
-            width: 48px; height: 48px;
+            width: 48px;
+            height: 48px;
             background: white;
             border-radius: 50%;
             border: none;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
             cursor: pointer;
             transition: all 0.2s;
             flex-shrink: 0;
@@ -179,8 +206,13 @@
             background: linear-gradient(135deg, #10b981, #059669);
         }
 
-        #continuous-btn:hover { transform: scale(1.05); }
-        #continuous-btn:active { transform: scale(0.95); }
+        #continuous-btn:hover {
+            transform: scale(1.05);
+        }
+
+        #continuous-btn:active {
+            transform: scale(0.95);
+        }
 
         #continuous-label {
             position: absolute;
@@ -201,7 +233,7 @@
         #bottom-sheet-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0, 0, 0, 0.6);
             z-index: 2000;
             opacity: 0;
             pointer-events: none;
@@ -216,14 +248,16 @@
 
         #bottom-sheet {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
             z-index: 2001;
             background: #1e293b;
             border-radius: 20px 20px 0 0;
             padding: 0 20px 40px;
             transform: translateY(100%);
             transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             max-height: 90vh;
             overflow-y: auto;
         }
@@ -233,8 +267,9 @@
         }
 
         .sheet-handle {
-            width: 40px; height: 4px;
-            background: rgba(255,255,255,0.2);
+            width: 40px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.2);
             border-radius: 2px;
             margin: 14px auto 20px;
         }
@@ -261,7 +296,7 @@
             border-radius: 12px;
             overflow: hidden;
             margin-bottom: 20px;
-            border: 1px solid rgba(255,255,255,0.08);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -290,8 +325,8 @@
             display: flex;
             align-items: center;
             gap: 6px;
-            background: rgba(16,185,129,0.1);
-            border: 1px solid rgba(16,185,129,0.2);
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
             border-radius: 8px;
             padding: 8px 12px;
             margin-bottom: 16px;
@@ -304,11 +339,13 @@
         }
 
         #gps-badge.no-gps {
-            background: rgba(239,68,68,0.1);
-            border-color: rgba(239,68,68,0.2);
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.2);
         }
 
-        #gps-badge.no-gps span { color: #f87171; }
+        #gps-badge.no-gps span {
+            color: #f87171;
+        }
 
         /* 입력 필드 */
         .field-group {
@@ -332,8 +369,8 @@
 
         .field-input {
             width: 100%;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 10px;
             padding: 12px 14px;
             font-size: 14px;
@@ -345,11 +382,13 @@
         }
 
         .field-input:focus {
-            border-color: rgba(59,130,246,0.5);
-            background: rgba(59,130,246,0.05);
+            border-color: rgba(59, 130, 246, 0.5);
+            background: rgba(59, 130, 246, 0.05);
         }
 
-        .field-input::placeholder { color: #475569; }
+        .field-input::placeholder {
+            color: #475569;
+        }
 
         textarea.field-input {
             resize: none;
@@ -374,11 +413,17 @@
             gap: 8px;
             margin-top: 8px;
             font-family: 'Noto Sans KR', sans-serif;
-            box-shadow: 0 4px 15px rgba(59,130,246,0.4);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
         }
 
-        #upload-btn:hover { filter: brightness(1.1); }
-        #upload-btn:active { transform: scale(0.98); }
+        #upload-btn:hover {
+            filter: brightness(1.1);
+        }
+
+        #upload-btn:active {
+            transform: scale(0.98);
+        }
+
         #upload-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -389,7 +434,7 @@
             width: 100%;
             padding: 12px;
             background: transparent;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             font-size: 13px;
             font-weight: 700;
@@ -400,13 +445,16 @@
             font-family: 'Noto Sans KR', sans-serif;
         }
 
-        #cancel-btn:hover { background: rgba(255,255,255,0.05); color: #94a3b8; }
+        #cancel-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+        }
 
         /* ── 촬영자 설정 모달 ── */
         #photographer-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             z-index: 3000;
             display: flex;
             align-items: center;
@@ -415,7 +463,9 @@
             transition: opacity 0.3s;
         }
 
-        #photographer-overlay.hidden { display: none; }
+        #photographer-overlay.hidden {
+            display: none;
+        }
 
         #photographer-modal {
             background: #1e293b;
@@ -423,8 +473,8 @@
             padding: 28px 24px;
             width: 100%;
             max-width: 360px;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
 
         #photographer-modal h2 {
@@ -462,7 +512,7 @@
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
             background: #1e293b;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: #f1f5f9;
             padding: 12px 20px;
             border-radius: 12px;
@@ -472,7 +522,7 @@
             opacity: 0;
             transition: all 0.3s;
             pointer-events: none;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
             white-space: nowrap;
             display: flex;
             align-items: center;
@@ -484,9 +534,17 @@
             transform: translateX(-50%) translateY(0);
         }
 
-        #toast.success { border-color: rgba(16,185,129,0.4); }
-        #toast.error { border-color: rgba(239,68,68,0.4); }
-        #toast.info { border-color: rgba(59,130,246,0.4); }
+        #toast.success {
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+
+        #toast.error {
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        #toast.info {
+            border-color: rgba(59, 130, 246, 0.4);
+        }
 
         /* ── 로딩 ── */
         #loading-screen {
@@ -516,14 +574,19 @@
         }
 
         .spinner {
-            width: 36px; height: 36px;
-            border: 3px solid rgba(59,130,246,0.2);
+            width: 36px;
+            height: 36px;
+            border: 3px solid rgba(59, 130, 246, 0.2);
             border-top-color: #3b82f6;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         /* ── 마커 팝업 (InfoWindow) ── */
         .marker-popup {
@@ -531,7 +594,7 @@
             width: 240px;
             background: white;
             border-radius: 14px;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
             font-family: 'Noto Sans KR', sans-serif;
         }
 
@@ -565,7 +628,9 @@
             transition: opacity 0.2s;
         }
 
-        .popup-thumb:hover { opacity: 0.85; }
+        .popup-thumb:hover {
+            opacity: 0.85;
+        }
 
         .popup-count-badge {
             font-size: 10px;
@@ -587,13 +652,15 @@
             transition: all 0.2s;
         }
 
-        .popup-add-btn:hover { background: #dbeafe; }
+        .popup-add-btn:hover {
+            background: #dbeafe;
+        }
 
         /* 업로드 진행 오버레이 */
         #upload-progress-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             z-index: 4000;
             display: flex;
             flex-direction: column;
@@ -603,7 +670,9 @@
             display: none;
         }
 
-        #upload-progress-overlay.show { display: flex; }
+        #upload-progress-overlay.show {
+            display: flex;
+        }
 
         #upload-progress-overlay p {
             font-size: 14px;
@@ -656,14 +725,16 @@
         <!-- 내 위치 -->
         <button id="my-location-btn" onclick="moveToMyLocation()" title="내 위치로 이동">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="#3b82f6">
-                <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z"/>
+                <path
+                    d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06z" />
             </svg>
         </button>
 
         <!-- 메인 촬영 버튼 -->
         <button id="capture-btn" onclick="onCaptureClick()" title="현장 촬영">
             <svg viewBox="0 0 24 24">
-                <path d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm7-13H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5.5a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1h.586l1-1.5H17.5l.914 1.5H19a1 1 0 0 1 1 1V17.5z"/>
+                <path
+                    d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm7-13H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5.5a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1h.586l1-1.5H17.5l.914 1.5H19a1 1 0 0 1 1 1V17.5z" />
             </svg>
         </button>
 
@@ -671,7 +742,8 @@
         <button id="continuous-btn" onclick="toggleContinuous()" title="연속 촬영 모드">
             <span id="continuous-icon">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="#64748b">
-                    <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    <path
+                        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
                 </svg>
             </span>
             <span id="continuous-label">연속</span>
@@ -733,7 +805,7 @@
 
         <button id="upload-btn" onclick="uploadPhoto()">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
-                <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+                <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
             </svg>
             업로드 완료
         </button>
@@ -747,8 +819,8 @@
         // ─────────────────────────────────────────────
         //  설정
         // ─────────────────────────────────────────────
-        const APPS_SCRIPT_URL = '여기에_앱스스크립트_URL_붙여넣기';
-        const API_SECRET      = 'FieldPhoto2026!';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsmES-1l_IWNkDZkjA8S0ft4bADEYO_IMYelAXziftQGVZLEZlCaVkONgYSea0ty5vag/exec';
+        const API_SECRET = 'FieldPhoto2026!';
 
         // ─────────────────────────────────────────────
         //  상태 변수
@@ -758,7 +830,7 @@
         let infowindow = null;
         let allMarkers = {};       // key: "lat,lng" → { marker, photos[] }
         let currentPhoto = null;   // { dataUrl, blob, mimeType }
-        let currentGPS  = null;    // { lat, lng }
+        let currentGPS = null;    // { lat, lng }
         let isContinuous = false;
         let pendingLatLng = null;  // 추가 촬영 시 고정 위치
 
@@ -899,7 +971,7 @@
                         let w = img.width, h = img.height;
                         if (w > maxSize || h > maxSize) {
                             if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
-                            else       { w = Math.round(w * maxSize / h); h = maxSize; }
+                            else { w = Math.round(w * maxSize / h); h = maxSize; }
                         }
                         const canvas = document.createElement('canvas');
                         canvas.width = w; canvas.height = h;
@@ -918,11 +990,11 @@
         //  업로드
         // ─────────────────────────────────────────────
         async function uploadPhoto() {
-            const bizNumber    = document.getElementById('input-biz').value.trim();
+            const bizNumber = document.getElementById('input-biz').value.trim();
             const photographer = document.getElementById('input-photographer').value.trim();
-            const memo         = document.getElementById('input-memo').value.trim();
+            const memo = document.getElementById('input-memo').value.trim();
 
-            if (!bizNumber)    { showToast('⚠️ 업체번호를 입력해주세요.', 'error'); return; }
+            if (!bizNumber) { showToast('⚠️ 업체번호를 입력해주세요.', 'error'); return; }
             if (!photographer) { showToast('⚠️ 촬영자 이름을 입력해주세요.', 'error'); return; }
             if (!currentPhoto) { showToast('⚠️ 사진이 없습니다.', 'error'); return; }
 
@@ -941,16 +1013,16 @@
                 const base64 = currentPhoto.dataUrl.split(',')[1];
 
                 const payload = {
-                    action:       'upload',
-                    key:          API_SECRET,
-                    imageBase64:  base64,
-                    mimeType:     currentPhoto.mimeType,
+                    action: 'upload',
+                    key: API_SECRET,
+                    imageBase64: base64,
+                    mimeType: currentPhoto.mimeType,
                     bizNumber,
                     photographer,
                     memo,
-                    lat:          gps.lat,
-                    lng:          gps.lng,
-                    address:      ''
+                    lat: gps.lat,
+                    lng: gps.lng,
+                    address: ''
                 };
 
                 const resp = await fetch(APPS_SCRIPT_URL, {

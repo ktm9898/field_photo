@@ -115,10 +115,29 @@ function doGet() {
   return ContentService.createTextOutput('접근이 거부되었습니다.');
 }
 
+// ── 머릿글 자동 생성 ─────────────────────────────────────────
+const HEADERS = ['촬영일시', '업체번호', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명'];
+
+function ensureHeaders(sheet) {
+  // 시트가 완전히 비어 있을 때만 머릿글 추가
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(HEADERS);
+    // 머릿글 스타일 (굵게 + 배경색)
+    const headerRange = sheet.getRange(1, 1, 1, HEADERS.length);
+    headerRange.setFontWeight('bold');
+    headerRange.setBackground('#1e293b');
+    headerRange.setFontColor('#ffffff');
+    headerRange.setHorizontalAlignment('center');
+  }
+}
+
 // ── 사진 업로드 처리 ─────────────────────────────────────────
 function handleUpload(data) {
   const sheet = getSheet();
   if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  // 머릿글 없으면 자동 생성
+  ensureHeaders(sheet);
 
   const now = new Date();
   const dateStr    = formatDateStr(now);
@@ -152,8 +171,8 @@ function handleUpload(data) {
   // 시트에 메타데이터 기록 (10열)
   sheet.appendRow([
     datetimeStr,                         // A: 촬영일시
-    data.photographer || '',             // B: 촬영자
-    data.bizNumber || '',                // C: 업체번호
+    data.bizNumber || '',                // B: 업체번호
+    data.photographer || '',             // C: 촬영자
     data.lat || '',                      // D: 위도
     data.lng || '',                      // E: 경도
     data.address || '',                  // F: 주소
@@ -183,8 +202,8 @@ function handleGetAll() {
   const records = values.map((row, idx) => ({
     rowIndex:     idx + 2,
     datetime:     row[0] ? String(row[0]) : '',
-    photographer: String(row[1] || ''),
-    bizNumber:    String(row[2] || ''),
+    bizNumber:    String(row[1] || ''),
+    photographer: String(row[2] || ''),
     lat:          row[3] !== '' ? Number(row[3]) : null,
     lng:          row[4] !== '' ? Number(row[4]) : null,
     address:      String(row[5] || ''),
