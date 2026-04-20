@@ -256,18 +256,10 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ record, allData, onClose, showToast }) => {
-            const [sendingEmail, setSendingEmail] = useState(false);
+        const PhotoGalleryModal = ({ group, onClose }) => {
+            if (!group || !group.photos) return null;
 
-            if (!record) return null;
-
-            const groupPhotos = useMemo(() =>
-                allData.filter(r => r.bizNumber === record.bizNumber)
-                    .sort((a, b) => new Date(b.datetime) - new Date(a.datetime)),
-                [allData, record.bizNumber]
-            );
-
-            const targetEmail = groupPhotos[0]?.email;
+            const groupPhotos = group.photos;
 
             const openLightbox = (url) => {
                 document.getElementById('lightbox-img').src = toThumbUrl(url);
@@ -286,32 +278,6 @@
                 });
             };
 
-            const handleSendEmail = async () => {
-                if (!targetEmail) return;
-                setSendingEmail(true);
-                showToast('메일 발송을 요청했습니다. (첨부파일 크기에 따라 시간이 걸릴 수 있습니다.)', 'info');
-                try {
-                    const pw = sessionStorage.getItem('field_admin_pw');
-                    const fileIds = groupPhotos.map(p => p.fileId).filter(Boolean);
-                    const res = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'sendEmail', key: API_SECRET, pw,
-                            bizNumber: record.bizNumber, email: targetEmail, fileIds
-                        })
-                    });
-                    const result = await res.json();
-                    if (result.success) {
-                        showToast('이메일 발송을 완료했습니다.', 'success');
-                    } else {
-                        showToast('발송 실패: ' + result.error, 'error');
-                    }
-                } catch (err) {
-                    showToast('네트워크 오류: ' + err.message, 'error');
-                }
-                setSendingEmail(false);
-            };
-
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -319,23 +285,16 @@
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">
-                                    업체번호: {record.bizNumber}
+                                    업체번호: {group.bizNumber}
                                 </h2>
                                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
                                     총 {groupPhotos.length}장의 사진
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                {targetEmail && (
-                                    <button onClick={handleSendEmail} disabled={sendingEmail}
-                                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors disabled:opacity-50">
-                                        <Icon name={sendingEmail ? 'loader-2' : 'mail'} size={14} className={sendingEmail ? 'animate-spin' : ''} />
-                                        {sendingEmail ? '발송 중...' : '메일 발송'}
-                                    </button>
-                                )}
                                 <button onClick={downloadAll}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
-                                    <Icon name="download" size={14} /> 전체 다운로드
+                                    <Icon name="download" size={14} /> 다운로드
                                 </button>
                                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                                     <Icon name="x" size={20} className="text-slate-400" />
@@ -515,6 +474,29 @@
                 });
             }, [records, appliedFilter]);
 
+            const groupedRecords = useMemo(() => {
+                const groups = [];
+                let currentGroup = null;
+
+                for (const r of filteredRecords) {
+                    if (!currentGroup) {
+                        currentGroup = { ...r, photos: [r] };
+                    } else {
+                        // 인접한 행이면서 업체번호, 촬영자, 메모가 동일한 경우 같은 그룹으로 묶음
+                        if (currentGroup.bizNumber === r.bizNumber &&
+                            currentGroup.photographer === r.photographer &&
+                            currentGroup.memo === r.memo) {
+                            currentGroup.photos.push(r);
+                        } else {
+                            groups.push(currentGroup);
+                            currentGroup = { ...r, photos: [r] };
+                        }
+                    }
+                }
+                if (currentGroup) groups.push(currentGroup);
+                return groups;
+            }, [filteredRecords]);
+
             const stats = useMemo(() => {
                 const today = new Date().toISOString().split('T')[0];
                 const todayCount = records.filter(r => r.datetime?.startsWith(today)).length;
@@ -538,8 +520,46 @@
                 URL.revokeObjectURL(url);
             };
 
+            const downloadGroup = (group) => {
+                if (!group.photos || !group.photos.length) return;
+                group.photos.forEach((p, i) => {
+                    setTimeout(() => {
+                        const a = document.createElement('a');
+                        a.href = (p.photoUrl || '').replace('export=view', 'export=download');
+                        a.download = p.fileName || ('photo_' + (i + 1) + '.jpg');
+                        a.target = '_blank';
+                        a.click();
+                    }, i * 800);
+                });
+                setToast({ message: group.photos.length + '장 다운로드 시작', type: 'success' });
+            };
+
+            const handleSendEmailRow = async (group) => {
+                const targetEmail = prompt('어떤 이메일로 발송하시겠습니까?', group.email || '');
+                if (!targetEmail) return;
+                setToast({ message: '메일 발송을 요청했습니다. (첨부파일 크기에 따라 시간이 걸릴 수 있습니다.)', type: 'info' });
+                try {
+                    const pw = sessionStorage.getItem('fp_admin_pw');
+                    const fileIds = group.photos.map(p => p.fileId).filter(Boolean);
+                    const res = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'sendEmail', key: API_SECRET, pw, bizNumber: group.bizNumber, email: targetEmail, fileIds })
+                    });
+                    const result = await res.json();
+                    if (result.success) setToast({ message: '이메일 발송을 완료했습니다.', type: 'success' });
+                    else setToast({ message: '발송 실패: ' + result.error, type: 'error' });
+                } catch(err) {
+                    setToast({ message: '네트워크 오류: ' + err.message, type: 'error' });
+                }
+            };
+
             const downloadSelected = () => {
-                const targets = filteredRecords.filter((_, i) => selectedRows.has(i));
+                const targets = [];
+                groupedRecords.forEach((g, i) => {
+                    if (selectedRows.has(i)) {
+                        targets.push(...g.photos);
+                    }
+                });
                 if (!targets.length) { setToast({ message: '다운로드할 사진을 선택해주세요.', type: 'info' }); return; }
                 targets.forEach((p, i) => {
                     setTimeout(() => {
@@ -554,10 +574,10 @@
             };
 
             const toggleSelectAll = () => {
-                if (selectedRows.size === filteredRecords.length) {
+                if (selectedRows.size === groupedRecords.length) {
                     setSelectedRows(new Set());
                 } else {
-                    setSelectedRows(new Set(filteredRecords.map((_, i) => i)));
+                    setSelectedRows(new Set(groupedRecords.map((_, i) => i)));
                 }
             };
 
@@ -703,12 +723,12 @@
                                                     className="w-4 h-4 accent-blue-600 cursor-pointer" />
                                             </th>
                                             <th className="px-2 py-3 text-center w-8">#</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap">썸네일</th>
                                             <th className="px-3 py-3 text-center whitespace-nowrap">업체번호</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap" style={{width:'100px'}}>촬영일시</th>
+                                            <th className="px-3 py-3 text-center whitespace-nowrap">썸네일</th>
+                                            <th className="px-3 py-3 text-center whitespace-nowrap" style={{width:'150px'}}>촬영일시</th>
                                             <th className="px-3 py-3 text-center whitespace-nowrap">촬영자</th>
                                             <th className="px-3 py-3 text-center whitespace-nowrap">위치</th>
-                                            <th className="px-3 py-3 text-center" style={{minWidth:'200px'}}>메모</th>
+                                            <th className="px-3 py-3 text-center" style={{minWidth:'100px',maxWidth:'160px'}}>메모</th>
                                             <th className="px-3 py-3 text-center whitespace-nowrap">작업</th>
                                         </tr>
                                     </thead>
@@ -726,7 +746,7 @@
                                                     </div>
                                                 </td>
                                             </tr>
-                                        ) : filteredRecords.map((r, idx) => (
+                                                ) : groupedRecords.map((r, idx) => (
                                             <tr key={idx} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
                                                 <td className="px-3 py-3 text-center">
                                                     <input type="checkbox"
@@ -740,6 +760,14 @@
                                                 </td>
                                                 <td className="px-2 py-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
                                                 <td className="px-3 py-3 text-center">
+                                                    <div className="font-black text-slate-700 text-sm">
+                                                        {r.bizNumber || '-'}
+                                                    </div>
+                                                    <div className="text-xs text-slate-400 font-semibold mt-0.5">
+                                                        {r.photos.length}장
+                                                    </div>
+                                                </td>
+                                                <td className="px-3 py-3 text-center">
                                                     {r.photoUrl ? (
                                                         <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
                                                             className="w-14 h-14 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity mx-auto"
@@ -750,16 +778,7 @@
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-center">
-                                                    <button onClick={() => setPhotoModal(r)}
-                                                        className="font-black text-blue-600 hover:text-blue-800 hover:underline text-sm transition-colors">
-                                                        {r.bizNumber || '-'}
-                                                    </button>
-                                                    <div className="text-xs text-slate-400 font-semibold mt-0.5">
-                                                        {records.filter(x => x.bizNumber === r.bizNumber).length}장
-                                                    </div>
-                                                </td>
-                                                <td className="px-3 py-3 text-center text-xs font-bold text-slate-600" style={{width:'100px'}}>
+                                                <td className="px-3 py-3 text-center text-xs font-bold text-slate-600" style={{width:'150px'}}>
                                                     {formatDateKr(r.datetime)}
                                                 </td>
                                                 <td className="px-3 py-3 text-center">
@@ -776,21 +795,25 @@
                                                         <span className="text-xs text-slate-300">-</span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3" style={{minWidth:'200px',maxWidth:'320px'}}>
+                                                <td className="px-3 py-3" style={{minWidth:'100px',maxWidth:'160px'}}>
                                                     <p className="text-xs text-slate-600 font-semibold line-clamp-2">
                                                         {r.memo || <span className="text-slate-300">-</span>}
                                                     </p>
                                                 </td>
                                                 <td className="px-3 py-3 text-center whitespace-nowrap">
-                                                    <div className="flex items-center justify-center gap-1.5">
+                                                    <div className="flex items-center justify-center gap-1.5 flex-wrap max-w-[140px]">
                                                         <button onClick={() => setPhotoModal(r)}
-                                                            className="px-2.5 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors">
+                                                            className="px-2.5 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-100 transition-colors w-full">
                                                             갤러리
                                                         </button>
-                                                        <a href={(r.photoUrl || '').replace('export=view', 'export=download')} target="_blank" rel="noreferrer"
-                                                            className="px-2.5 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
+                                                        <button onClick={() => downloadGroup(r)}
+                                                            className="px-2.5 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors flex-1" title="다운로드">
                                                             ↓
-                                                        </a>
+                                                        </button>
+                                                        <button onClick={() => handleSendEmailRow(r)}
+                                                            className="px-2.5 py-1.5 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors flex-1" title="메일 발송">
+                                                            ✉️
+                                                        </button>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -804,10 +827,8 @@
                     {/* ── 사진 갤러리 모달 ── */}
                     {photoModal && (
                         <PhotoGalleryModal
-                            record={photoModal}
-                            allData={records}
+                            group={photoModal}
                             onClose={() => setPhotoModal(null)}
-                            showToast={(msg, type) => setToast({ message: msg, type: type })}
                         />
                     )}
                 </div>

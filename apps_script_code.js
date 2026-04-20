@@ -246,7 +246,7 @@ function handleSendEmail(data) {
   }
 
   const htmlBody = `
-    <h2>🏢 상권 현장 방문 사진</h2>
+    <h2>상권 현장 방문 사진</h2>
     <p><b>업체 번호:</b> ${data.bizNumber || '-'}</p>
     <p>총 <b>${attachments.length}</b>장의 사진이 첨부되었습니다.</p>
   `;

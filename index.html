@@ -1032,6 +1032,8 @@
             setUploadUiLoading(true, 1, total);
 
             let successCount = 0;
+            const uploadedFileIds = [];
+
             for (let i = 0; i < capturedPhotos.length; i++) {
                 const photo = capturedPhotos[i];
                 const gps = photo.gps || currentGPS;
@@ -1071,6 +1073,7 @@
                             photoUrl: result.fileUrl
                         });
                         successCount++;
+                        if (result.fileId) uploadedFileIds.push(result.fileId);
                     } else {
                         showToast((i + 1) + '번 업로드 실패: ' + result.error, 'error');
                     }
@@ -1079,11 +1082,38 @@
                 }
             }
 
-            setUploadUiLoading(false);
-
-            if (successCount > 0) {
+            if (successCount > 0 && email && uploadedFileIds.length > 0) {
+                setUploadUiLoading(true, '이메일', '발송'); // 진행상태 창 변경
+                document.getElementById('upload-progress-text').textContent = '이메일을 발송하는 중...';
+                try {
+                    const mailPayload = {
+                        action: 'sendEmail', key: API_SECRET, pw: '', // 프론트는 pw 모름 (Apps Script가 pw 검사 안하도록 배포되어 있음)
+                        bizNumber, email, fileIds: uploadedFileIds
+                    };
+                    const mailRes = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST', body: JSON.stringify(mailPayload)
+                    });
+                    const mailResult = await mailRes.json();
+                    setUploadUiLoading(false);
+                    
+                    if (mailResult.success) {
+                        closeBottomSheet();
+                        showToast(successCount + '장 업로드 및 메일 발송 완료! (' + bizNumber + ')', 'success');
+                    } else {
+                        closeBottomSheet();
+                        showToast('업로드성공 (메일 발송 실패: ' + mailResult.error + ')', 'error');
+                    }
+                } catch(e) {
+                    setUploadUiLoading(false);
+                    closeBottomSheet();
+                    showToast('업로드성공 (메일 예외: ' + e.message + ')', 'error');
+                }
+            } else if (successCount > 0) {
+                setUploadUiLoading(false);
                 closeBottomSheet();
                 showToast(successCount + '장 업로드 완료! (' + bizNumber + ')', 'success');
+            } else {
+                setUploadUiLoading(false);
             }
         }
 
@@ -1092,10 +1122,16 @@
             const overlay = document.getElementById('upload-progress-overlay');
             btn.disabled = loading;
             if (loading) {
-                const txt = (current && total) ? ('업로드 중 (' + current + '/' + total + '장)...') : '업로드 중...';
+                let txt = '업로드 중...';
+                if (current === '이메일') txt = '이메일 발송 중...';
+                else if (current && total) txt = '업로드 중 (' + current + '/' + total + '장)...';
                 btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> ' + txt;
+                if (current !== '이메일') {
+                  document.getElementById('upload-progress-text').textContent = txt;
+                }
             } else {
                 btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg> <span id="upload-btn-text">업로드</span>';
+                document.getElementById('upload-progress-text').textContent = '사진을 업로드하는 중...'; // 복구
             }
             overlay.classList.toggle('show', loading);
         }
