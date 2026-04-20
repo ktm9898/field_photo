@@ -256,7 +256,9 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ record, allData, onClose }) => {
+        const PhotoGalleryModal = ({ record, allData, onClose, showToast }) => {
+            const [sendingEmail, setSendingEmail] = useState(false);
+
             if (!record) return null;
 
             const groupPhotos = useMemo(() =>
@@ -264,6 +266,8 @@
                     .sort((a, b) => new Date(b.datetime) - new Date(a.datetime)),
                 [allData, record.bizNumber]
             );
+
+            const targetEmail = groupPhotos[0]?.email;
 
             const openLightbox = (url) => {
                 document.getElementById('lightbox-img').src = toThumbUrl(url);
@@ -282,6 +286,32 @@
                 });
             };
 
+            const handleSendEmail = async () => {
+                if (!targetEmail) return;
+                setSendingEmail(true);
+                showToast('메일 발송을 요청했습니다. (첨부파일 크기에 따라 시간이 걸릴 수 있습니다.)', 'info');
+                try {
+                    const pw = sessionStorage.getItem('field_admin_pw');
+                    const fileIds = groupPhotos.map(p => p.fileId).filter(Boolean);
+                    const res = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'sendEmail', key: API_SECRET, pw,
+                            bizNumber: record.bizNumber, email: targetEmail, fileIds
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        showToast('이메일 발송을 완료했습니다.', 'success');
+                    } else {
+                        showToast('발송 실패: ' + result.error, 'error');
+                    }
+                } catch (err) {
+                    showToast('네트워크 오류: ' + err.message, 'error');
+                }
+                setSendingEmail(false);
+            };
+
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
@@ -296,6 +326,13 @@
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
+                                {targetEmail && (
+                                    <button onClick={handleSendEmail} disabled={sendingEmail}
+                                        className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors disabled:opacity-50">
+                                        <Icon name={sendingEmail ? 'loader-2' : 'mail'} size={14} className={sendingEmail ? 'animate-spin' : ''} />
+                                        {sendingEmail ? '발송 중...' : '메일 발송'}
+                                    </button>
+                                )}
                                 <button onClick={downloadAll}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
                                     <Icon name="download" size={14} /> 전체 다운로드
@@ -770,6 +807,7 @@
                             record={photoModal}
                             allData={records}
                             onClose={() => setPhotoModal(null)}
+                            showToast={(msg, type) => setToast({ message: msg, type: type })}
                         />
                     )}
                 </div>

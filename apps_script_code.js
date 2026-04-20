@@ -107,6 +107,12 @@ function doPost(e) {
       return handleUpload(data);
     }
 
+    // 3) 메일 발송
+    if (data.action === 'sendEmail') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleSendEmail(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -120,7 +126,7 @@ function doGet() {
 }
 
 // ── 머릿글 자동 생성 ─────────────────────────────────────────
-const HEADERS = ['촬영일시', '업체번호', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명'];
+const HEADERS = ['촬영일시', '업체번호', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명', '이메일'];
 
 function ensureHeaders(sheet) {
   // 시트가 완전히 비어 있을 때만 머릿글 추가
@@ -172,7 +178,7 @@ function handleUpload(data) {
   const fileId  = file.getId();
   const fileUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
-  // 시트에 메타데이터 기록 (10열)
+  // 시트에 메타데이터 기록 (11열)
   sheet.appendRow([
     datetimeStr,                         // A: 촬영일시
     data.bizNumber || '',                // B: 업체번호
@@ -183,7 +189,8 @@ function handleUpload(data) {
     fileUrl,                             // G: 사진URL
     fileId,                              // H: 사진파일ID
     data.memo || '',                     // I: 메모
-    fileName                             // J: 파일명
+    fileName,                            // J: 파일명
+    data.email || ''                     // K: 이메일
   ]);
 
   return jsonResponse({
@@ -202,7 +209,7 @@ function handleGetAll() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 10).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
   const records = values.map((row, idx) => ({
     rowIndex:     idx + 2,
     datetime:     row[0] ? String(row[0]) : '',
@@ -214,9 +221,49 @@ function handleGetAll() {
     photoUrl:     String(row[6] || ''),
     fileId:       String(row[7] || ''),
     memo:         String(row[8] || ''),
-    fileName:     String(row[9] || '')
+    fileName:     String(row[9] || ''),
+    email:        String(row[10] || '')
   })).filter(r => r.photoUrl); // URL 없는 행 제외
 
   records.reverse(); // 최신순
   return jsonResponse({ success: true, data: records, total: records.length });
+}
+
+// ── 이메일 전송 ──────────────────────────────────────────────
+function handleSendEmail(data) {
+  if (!data.email) return jsonResponse({ success: false, error: '수신 이메일 정보가 없습니다.' });
+  if (!data.fileIds || !data.fileIds.length) return jsonResponse({ success: false, error: '첨부할 파일 식별자가 없습니다.' });
+
+  const attachments = [];
+  try {
+    for (let i = 0; i < data.fileIds.length; i++) {
+        const fId = data.fileIds[i];
+        const file = DriveApp.getFileById(fId);
+        attachments.push(file.getBlob());
+    }
+  } catch (err) {
+      return jsonResponse({ success: false, error: '파일을 드라이브에서 가져오는 중 오류가 발생했습니다. ' + err.toString() });
+  }
+
+  const htmlBody = `
+    <h2>🏢 상권 현장 방문 사진</h2>
+    <p><b>업체 번호:</b> ${data.bizNumber || '-'}</p>
+    <p>총 <b>${attachments.length}</b>장의 사진이 첨부되었습니다.</p>
+  `;
+
+  try {
+    MailApp.sendEmail({
+      to: data.email,
+      subject: `[현장사진] 업체번호 ${data.bizNumber} 현장점검 결과`,
+      htmlBody: htmlBody,
+      attachments: attachments
+    });
+  } catch (err) {
+    if (err.toString().includes('Exceeded maximum execution time') || err.toString().includes('Limit Exceeded') || err.toString().includes('too large')) {
+      return jsonResponse({ success: false, error: '사진들의 총 용량이 25MB 이메일 첨부 제한을 초과했습니다.' });
+    }
+    return jsonResponse({ success: false, error: '메일 발송 중 오류: ' + err.toString() });
+  }
+
+  return jsonResponse({ success: true });
 }

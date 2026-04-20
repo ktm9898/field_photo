@@ -678,6 +678,10 @@
                 <label class="field-label">이름<span class="required-dot">*</span></label>
                 <input type="text" id="photographer-input" class="field-input" placeholder="예: 홍길동" maxlength="20">
             </div>
+            <div class="field-group">
+                <label class="field-label">이메일 (선택)</label>
+                <input type="email" id="photographer-email-input" class="field-input" placeholder="예: user@example.com">
+            </div>
             <button id="photographer-save-btn" onclick="savePhotographer()">확인</button>
         </div>
     </div>
@@ -1013,6 +1017,7 @@
         async function uploadAllPhotos() {
             const bizNumber = document.getElementById('input-biz').value.trim();
             const photographer = document.getElementById('input-photographer').value.trim();
+            const email = localStorage.getItem('photographer_email') || '';
             const memo = document.getElementById('input-memo').value.trim();
 
             if (!bizNumber) { showToast('업체번호를 입력해주세요.', 'error'); return; }
@@ -1046,6 +1051,7 @@
                         mimeType: photo.mimeType,
                         bizNumber,
                         photographer,
+                        email,
                         memo,
                         lat: gps.lat,
                         lng: gps.lng,
@@ -1212,14 +1218,18 @@
         // ─────────────────────────────────────────────
         function showPhotographerModal() {
             const saved = localStorage.getItem('photographer_name') || '';
+            const savedEmail = localStorage.getItem('photographer_email') || '';
             document.getElementById('photographer-input').value = saved;
+            document.getElementById('photographer-email-input').value = savedEmail;
             document.getElementById('photographer-overlay').classList.remove('hidden');
         }
 
         function savePhotographer() {
             const name = document.getElementById('photographer-input').value.trim();
+            const email = document.getElementById('photographer-email-input').value.trim();
             if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
             localStorage.setItem('photographer_name', name);
+            localStorage.setItem('photographer_email', email);
             document.getElementById('photographer-name').textContent = name;
             document.getElementById('photographer-overlay').classList.add('hidden');
             showToast('촬영자 설정 완료', 'success');
