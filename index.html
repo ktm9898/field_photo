@@ -95,10 +95,6 @@
             color: #93c5fd;
         }
 
-        #photographer-icon {
-            font-size: 14px;
-        }
-
         /* ── 관리자 링크 ── */
         #admin-link {
             font-size: 11px;
@@ -185,50 +181,6 @@
             fill: white;
         }
 
-        /* 연속 촬영 토글 버튼 */
-        #continuous-btn {
-            width: 48px;
-            height: 48px;
-            background: white;
-            border-radius: 50%;
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
-            cursor: pointer;
-            transition: all 0.2s;
-            flex-shrink: 0;
-            position: relative;
-        }
-
-        #continuous-btn.active {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        #continuous-btn:hover {
-            transform: scale(1.05);
-        }
-
-        #continuous-btn:active {
-            transform: scale(0.95);
-        }
-
-        #continuous-label {
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 9px;
-            font-weight: 700;
-            color: #64748b;
-            white-space: nowrap;
-        }
-
-        #continuous-btn.active #continuous-label {
-            color: #10b981;
-        }
-
         /* ── 바텀시트 ── */
         #bottom-sheet-overlay {
             position: fixed;
@@ -285,38 +237,6 @@
             font-size: 12px;
             color: #64748b;
             margin-bottom: 24px;
-            font-weight: 600;
-        }
-
-        /* 사진 미리보기 */
-        #photo-preview-container {
-            width: 100%;
-            aspect-ratio: 16/9;
-            background: #0f172a;
-            border-radius: 12px;
-            overflow: hidden;
-            margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #photo-preview {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: none;
-        }
-
-        #photo-preview-placeholder {
-            text-align: center;
-        }
-
-        #photo-preview-placeholder p {
-            font-size: 12px;
-            color: #475569;
-            margin-top: 8px;
             font-weight: 600;
         }
 
@@ -662,7 +582,6 @@
             inset: 0;
             background: rgba(0, 0, 0, 0.7);
             z-index: 4000;
-            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -679,6 +598,14 @@
             font-weight: 700;
             color: white;
         }
+
+        /* 촬영 썸네일 그리드 */
+        #captured-thumbs-grid {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
     </style>
 </head>
 
@@ -687,7 +614,7 @@
     <!-- 로딩 화면 -->
     <div id="loading-screen">
         <div class="spinner"></div>
-        <h1>📷 상권 현장 촬영</h1>
+        <h1>상권 현장 촬영</h1>
         <p>지도를 불러오는 중...</p>
     </div>
 
@@ -704,13 +631,13 @@
     <div id="top-bar">
         <div id="top-bar-left">
             <div>
-                <div id="top-bar-title">📷 현장 촬영</div>
+                <div id="top-bar-title">현장 촬영</div>
                 <div id="top-bar-sub">상권 방문 사진 기록</div>
             </div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
             <div id="photographer-chip" onclick="showPhotographerModal()">
-                <span id="photographer-icon">👤</span>
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="#93c5fd" style="flex-shrink:0"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
                 <span id="photographer-name">이름 설정</span>
             </div>
             <a href="admin.html" id="admin-link">관리자 →</a>
@@ -738,22 +665,14 @@
             </svg>
         </button>
 
-        <!-- 연속 촬영 토글 -->
-        <button id="continuous-btn" onclick="toggleContinuous()" title="연속 촬영 모드">
-            <span id="continuous-icon">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="#64748b">
-                    <path
-                        d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z" />
-                </svg>
-            </span>
-            <span id="continuous-label">연속</span>
-        </button>
+        <!-- 위치 이동 버튼 (오른쪽) -->
+        <button id="my-location-btn" onclick="moveToMyLocation()" title="현재 위치" style="visibility:hidden"></button>
     </div>
 
-    <!-- 촬영자 설정 모달 -->
-    <div id="photographer-overlay">
+    <!-- 촬영자 설정 모달 — 기본 hidden (이미 저장된 경우 안 뜸) -->
+    <div id="photographer-overlay" class="hidden">
         <div id="photographer-modal">
-            <h2>📋 촬영자 설정</h2>
+            <h2>촬영자 설정</h2>
             <p>이름을 입력하면 이후 자동으로 적용됩니다</p>
             <div class="field-group">
                 <label class="field-label">이름<span class="required-dot">*</span></label>
@@ -769,21 +688,18 @@
     <!-- 바텀시트 -->
     <div id="bottom-sheet">
         <div class="sheet-handle"></div>
-        <div class="sheet-title">📸 사진 정보 입력</div>
+        <div class="sheet-title">사진 정보 입력</div>
         <div class="sheet-subtitle" id="sheet-datetime"></div>
 
-        <!-- 사진 미리보기 -->
-        <div id="photo-preview-container">
-            <img id="photo-preview" alt="촬영 사진">
-            <div id="photo-preview-placeholder">
-                <div style="font-size:36px;">📷</div>
-                <p>사진을 촬영하면<br>여기에 표시됩니다</p>
-            </div>
+        <!-- 촬영된 사진 썸네일 -->
+        <div id="captured-thumbs" style="display:none;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;margin-bottom:8px;">촬영된 사진</div>
+            <div id="captured-thumbs-grid"></div>
         </div>
 
         <!-- GPS 뱃지 -->
         <div id="gps-badge">
-            <span>📍</span>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="#34d399" style="flex-shrink:0"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
             <span id="gps-text">위치 획득 중...</span>
         </div>
 
@@ -803,13 +719,13 @@
             <textarea id="input-memo" class="field-input" placeholder="예: 정문 사진, 간판 상태 양호 등"></textarea>
         </div>
 
-        <button id="upload-btn" onclick="uploadPhoto()">
+        <button id="upload-btn" onclick="uploadAllPhotos()">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
                 <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z" />
             </svg>
-            업로드 완료
+            <span id="upload-btn-text">업로드</span>
         </button>
-        <button id="cancel-btn" onclick="closeBottomSheet()">취소</button>
+        <button id="cancel-btn" onclick="closeBottomSheet()">취소 (사진 삭제)</button>
     </div>
 
     <!-- 카메라 input (숨김) -->
@@ -828,11 +744,12 @@
         let map;
         let myLocationMarker = null;
         let infowindow = null;
-        let allMarkers = {};       // key: "lat,lng" → { marker, photos[] }
-        let currentPhoto = null;   // { dataUrl, blob, mimeType }
-        let currentGPS = null;    // { lat, lng }
-        let isContinuous = false;
-        let pendingLatLng = null;  // 추가 촬영 시 고정 위치
+        let allMarkers = {};        // key: "lat,lng" → { marker, photos[] }
+        let capturedPhotos = [];    // [{ dataUrl, blob, mimeType, gps }] — 연속촬영 배열
+        let currentGPS = null;      // { lat, lng }
+        let currentAddress = '';    // 역지오코딩 주소
+        let pendingLatLng = null;   // 마커에서 추가촬영 시 고정 위치
+        let pendingBizNumber = '';  // 마커 추가촬영 시 업체번호 자동세팅
 
         // ─────────────────────────────────────────────
         //  초기화
@@ -855,12 +772,13 @@
             // GPS 추적 시작
             startTracking();
 
-            // 촬영자 확인
+            // 촬영자 확인 — localStorage에 저장된 값이 있으면 모달 안 띄움
             const savedName = localStorage.getItem('photographer_name');
-            if (!savedName) {
-                showPhotographerModal();
-            } else {
+            if (savedName) {
                 document.getElementById('photographer-name').textContent = savedName;
+                // 모달은 기본 hidden 상태 유지
+            } else {
+                showPhotographerModal();
             }
 
             // 카메라 input 이벤트
@@ -868,7 +786,7 @@
         };
 
         // ─────────────────────────────────────────────
-        //  GPS 추적
+        //  GPS 추적 + 역지오코딩
         // ─────────────────────────────────────────────
         function startTracking() {
             if (!navigator.geolocation) return;
@@ -893,10 +811,56 @@
                     } else {
                         myLocationMarker.setPosition(latLng);
                     }
+
+                    // 역지오코딩 (주소 업데이트)
+                    reverseGeocode(lat, lng);
                 },
                 (err) => console.warn('GPS 오류:', err),
                 { enableHighAccuracy: true, maximumAge: 0, timeout: 8000 }
             );
+        }
+
+        // 역지오코딩: 좌표 → 주소
+        function reverseGeocode(lat, lng) {
+            naver.maps.Service.reverseGeocode(
+                {
+                    coords: new naver.maps.LatLng(lat, lng),
+                    orders: [naver.maps.Service.OrderType.ROAD_ADDR, naver.maps.Service.OrderType.ADDR].join(',')
+                },
+                function (status, response) {
+                    if (status !== naver.maps.Service.Status.OK) {
+                        currentAddress = '';
+                        return;
+                    }
+                    const items = response.v2.results;
+                    if (items && items.length > 0) {
+                        // 도로명 주소 우선, 없으면 지번주소
+                        const addr = items[0].name === 'roadaddr'
+                            ? response.v2.address.roadAddress
+                            : response.v2.address.jibunAddress;
+                        currentAddress = addr || '';
+                        // 바텀시트가 열려있으면 GPS 뱃지도 즉시 업데이트
+                        if (document.getElementById('bottom-sheet').classList.contains('open')) {
+                            updateGpsBadge();
+                        }
+                    }
+                }
+            );
+        }
+
+        // GPS 뱃지 업데이트 (주소 우선, 없으면 좌표)
+        function updateGpsBadge() {
+            const gpsEl = document.getElementById('gps-text');
+            const badge = document.getElementById('gps-badge');
+            const gps = pendingLatLng || currentGPS;
+            if (gps) {
+                gpsEl.textContent = currentAddress
+                    || ('위도 ' + gps.lat.toFixed(6) + ', 경도 ' + gps.lng.toFixed(6));
+                badge.classList.remove('no-gps');
+            } else {
+                gpsEl.textContent = 'GPS 좌표 없음';
+                badge.classList.add('no-gps');
+            }
         }
 
         window.moveToMyLocation = function () {
@@ -904,16 +868,39 @@
                 map.panTo(myLocationMarker.getPosition());
                 map.setZoom(17);
             } else {
-                showToast('📍 위치를 불러오는 중입니다...', 'info');
+                showToast('위치를 불러오는 중입니다...', 'info');
             }
         };
+
+        // ─────────────────────────────────────────────
+        //  촬영종료 UI 바 (촬영된 사진이 있을 때만 표시)
+        // ─────────────────────────────────────────────
+        function updateCaptureUI() {
+            const count = capturedPhotos.length;
+            const existing = document.getElementById('finish-capture-bar');
+            if (existing) existing.remove();
+
+            if (count > 0) {
+                const bar = document.createElement('div');
+                bar.id = 'finish-capture-bar';
+                bar.style.cssText = 'position:fixed;bottom:116px;left:0;right:0;z-index:1001;display:flex;justify-content:center;';
+                bar.innerHTML =
+                    '<div style="background:rgba(15,23,42,0.96);border:1px solid rgba(59,130,246,0.4);border-radius:30px;padding:8px 20px;display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,0.5);">' +
+                        '<span style="font-size:12px;font-weight:700;color:#94a3b8;">촬영된 사진</span>' +
+                        '<span style="font-size:16px;font-weight:900;color:#f1f5f9;">' + count + '장</span>' +
+                        '<button onclick="openBottomSheetForUpload()" style="padding:8px 20px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border:none;border-radius:20px;font-size:13px;font-weight:900;color:white;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">촬영 종료</button>' +
+                        '<button onclick="clearCapturedPhotos()" style="padding:8px 12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:20px;font-size:12px;font-weight:700;color:#f87171;cursor:pointer;font-family:\'Noto Sans KR\',sans-serif;">취소</button>' +
+                    '</div>';
+                document.body.appendChild(bar);
+            }
+        }
 
         // ─────────────────────────────────────────────
         //  촬영 버튼 클릭
         // ─────────────────────────────────────────────
         function onCaptureClick() {
             if (!currentGPS) {
-                showToast('⚠️ GPS를 아직 수신하지 못했습니다. 잠시 기다려주세요.', 'error');
+                showToast('GPS를 아직 수신하지 못했습니다. 잠시 기다려주세요.', 'error');
                 return;
             }
             pendingLatLng = null; // 새 위치에서 촬영
@@ -921,43 +908,77 @@
         }
 
         // ─────────────────────────────────────────────
-        //  사진 선택 후 처리
+        //  사진 선택 후 처리 — 배열에 추가, 바텀시트 안 열림
         // ─────────────────────────────────────────────
         function onPhotoSelected(e) {
             const file = e.target.files[0];
             if (!file) return;
 
-            // 리사이즈 후 미리보기
+            // 현재 GPS 스냅샷 저장
+            const gps = pendingLatLng
+                ? { lat: pendingLatLng.lat, lng: pendingLatLng.lng }
+                : (currentGPS ? { lat: currentGPS.lat, lng: currentGPS.lng } : null);
+
             resizeImage(file, 1920).then(({ dataUrl, blob, mimeType }) => {
-                currentPhoto = { dataUrl, blob, mimeType };
-                // 미리보기 표시
-                const preview = document.getElementById('photo-preview');
-                preview.src = dataUrl;
-                preview.style.display = 'block';
-                document.getElementById('photo-preview-placeholder').style.display = 'none';
-                // 날짜 표시
-                const now = new Date();
-                document.getElementById('sheet-datetime').textContent =
-                    `${now.toLocaleDateString('ko-KR')} ${now.toLocaleTimeString('ko-KR')}`;
-                // GPS 뱃지 업데이트
-                if (currentGPS) {
-                    document.getElementById('gps-text').textContent =
-                        `위도 ${currentGPS.lat.toFixed(6)}, 경도 ${currentGPS.lng.toFixed(6)}`;
-                    document.getElementById('gps-badge').classList.remove('no-gps');
-                } else {
-                    document.getElementById('gps-text').textContent = 'GPS 좌표 없음';
-                    document.getElementById('gps-badge').classList.add('no-gps');
-                }
-                // 촬영자 자동 채우기
-                const savedName = localStorage.getItem('photographer_name') || '';
-                document.getElementById('input-photographer').value = savedName;
-                // 바텀시트 열기
-                openBottomSheet();
+                capturedPhotos.push({ dataUrl, blob, mimeType, gps });
+                updateCaptureUI();
+                showToast(capturedPhotos.length + '장 촬영되었습니다.', 'success');
             });
 
-            // Input 값 초기화 (동일 파일 재선택 허용)
+            // Input 초기화 (동일 파일 재선택 허용)
             e.target.value = '';
         }
+
+        // 촬영된 사진 모두 취소
+        window.clearCapturedPhotos = function () {
+            capturedPhotos = [];
+            pendingLatLng = null;
+            pendingBizNumber = '';
+            updateCaptureUI();
+            showToast('촬영된 사진을 삭제했습니다.', 'info');
+        };
+
+        // 촬영종료 버튼 → 바텀시트 열기
+        window.openBottomSheetForUpload = function () {
+            if (capturedPhotos.length === 0) {
+                showToast('촬영된 사진이 없습니다.', 'error');
+                return;
+            }
+
+            // 날짜 표시
+            const now = new Date();
+            document.getElementById('sheet-datetime').textContent =
+                now.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+            // GPS 뱃지
+            updateGpsBadge();
+
+            // 촬영자 자동 채우기
+            const savedName = localStorage.getItem('photographer_name') || '';
+            document.getElementById('input-photographer').value = savedName;
+
+            // 업체번호 자동 세팅 (마커에서 온 경우)
+            if (pendingBizNumber) {
+                document.getElementById('input-biz').value = pendingBizNumber;
+            }
+
+            // 썸네일 그리드 구성
+            const grid = document.getElementById('captured-thumbs-grid');
+            grid.innerHTML = '';
+            capturedPhotos.forEach(function (p, i) {
+                const img = document.createElement('img');
+                img.src = p.dataUrl;
+                img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0;border:1px solid rgba(255,255,255,0.1);';
+                img.alt = '사진 ' + (i + 1);
+                grid.appendChild(img);
+            });
+            document.getElementById('captured-thumbs').style.display = 'block';
+
+            // 업로드 버튼 텍스트
+            document.getElementById('upload-btn-text').textContent = capturedPhotos.length + '장 업로드';
+
+            openBottomSheet();
+        };
 
         // ─────────────────────────────────────────────
         //  이미지 리사이즈 (Canvas API)
@@ -987,84 +1008,89 @@
         }
 
         // ─────────────────────────────────────────────
-        //  업로드
+        //  사진 일괄 업로드
         // ─────────────────────────────────────────────
-        async function uploadPhoto() {
+        async function uploadAllPhotos() {
             const bizNumber = document.getElementById('input-biz').value.trim();
             const photographer = document.getElementById('input-photographer').value.trim();
             const memo = document.getElementById('input-memo').value.trim();
 
-            if (!bizNumber) { showToast('⚠️ 업체번호를 입력해주세요.', 'error'); return; }
-            if (!photographer) { showToast('⚠️ 촬영자 이름을 입력해주세요.', 'error'); return; }
-            if (!currentPhoto) { showToast('⚠️ 사진이 없습니다.', 'error'); return; }
-
-            const gps = pendingLatLng || currentGPS;
-            if (!gps) { showToast('⚠️ GPS 좌표가 없습니다.', 'error'); return; }
+            if (!bizNumber) { showToast('업체번호를 입력해주세요.', 'error'); return; }
+            if (!photographer) { showToast('촬영자 이름을 입력해주세요.', 'error'); return; }
+            if (capturedPhotos.length === 0) { showToast('사진이 없습니다.', 'error'); return; }
 
             // 이름 저장
             localStorage.setItem('photographer_name', photographer);
             document.getElementById('photographer-name').textContent = photographer;
 
-            // 진행 중 UI
-            setUploadUiLoading(true);
+            const total = capturedPhotos.length;
+            setUploadUiLoading(true, 1, total);
 
-            try {
-                // Base64 변환
-                const base64 = currentPhoto.dataUrl.split(',')[1];
+            let successCount = 0;
+            for (let i = 0; i < capturedPhotos.length; i++) {
+                const photo = capturedPhotos[i];
+                const gps = photo.gps || currentGPS;
 
-                const payload = {
-                    action: 'upload',
-                    key: API_SECRET,
-                    imageBase64: base64,
-                    mimeType: currentPhoto.mimeType,
-                    bizNumber,
-                    photographer,
-                    memo,
-                    lat: gps.lat,
-                    lng: gps.lng,
-                    address: ''
-                };
-
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify(payload)
-                });
-                const result = await resp.json();
-
-                if (result.success) {
-                    // 마커 추가/업데이트
-                    addOrUpdateMarker(gps.lat, gps.lng, {
-                        bizNumber, photographer, memo,
-                        datetime: new Date().toLocaleString('ko-KR'),
-                        photoUrl: result.fileUrl
-                    });
-                    closeBottomSheet();
-                    showToast(`✅ 업로드 완료! (${bizNumber})`, 'success');
-
-                    // 연속 촬영 모드이면 즉시 카메라 다시 열기
-                    if (isContinuous) {
-                        setTimeout(() => {
-                            pendingLatLng = gps; // 같은 위치 유지
-                            document.getElementById('camera-input').click();
-                        }, 800);
-                    }
-                } else {
-                    showToast('❌ 업로드 실패: ' + result.error, 'error');
+                if (!gps) {
+                    showToast((i + 1) + '번 사진: GPS 좌표 없음', 'error');
+                    continue;
                 }
-            } catch (err) {
-                showToast('❌ 오류 발생: ' + err.message, 'error');
-            } finally {
-                setUploadUiLoading(false);
+
+                try {
+                    setUploadUiLoading(true, i + 1, total);
+                    const base64 = photo.dataUrl.split(',')[1];
+                    const payload = {
+                        action: 'upload',
+                        key: API_SECRET,
+                        imageBase64: base64,
+                        mimeType: photo.mimeType,
+                        bizNumber,
+                        photographer,
+                        memo,
+                        lat: gps.lat,
+                        lng: gps.lng,
+                        address: currentAddress || ''
+                    };
+
+                    const resp = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await resp.json();
+
+                    if (result.success) {
+                        addOrUpdateMarker(gps.lat, gps.lng, {
+                            bizNumber, photographer, memo,
+                            datetime: new Date().toLocaleString('ko-KR'),
+                            photoUrl: result.fileUrl
+                        });
+                        successCount++;
+                    } else {
+                        showToast((i + 1) + '번 업로드 실패: ' + result.error, 'error');
+                    }
+                } catch (err) {
+                    showToast((i + 1) + '번 오류: ' + err.message, 'error');
+                }
+            }
+
+            setUploadUiLoading(false);
+
+            if (successCount > 0) {
+                closeBottomSheet();
+                showToast(successCount + '장 업로드 완료! (' + bizNumber + ')', 'success');
             }
         }
 
-        function setUploadUiLoading(loading) {
+        function setUploadUiLoading(loading, current, total) {
             const btn = document.getElementById('upload-btn');
             const overlay = document.getElementById('upload-progress-overlay');
             btn.disabled = loading;
-            btn.innerHTML = loading
-                ? '<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> 업로드 중...'
-                : '<svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg> 업로드 완료';
+            if (loading) {
+                const txt = (current && total) ? ('업로드 중 (' + current + '/' + total + '장)...') : '업로드 중...';
+                btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;"></div> ' + txt;
+            } else {
+                btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="white"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg> <span id="upload-btn-text">업로드</span>';
+            }
             overlay.classList.toggle('show', loading);
         }
 
@@ -1072,7 +1098,7 @@
         //  마커 추가 / 업데이트
         // ─────────────────────────────────────────────
         function addOrUpdateMarker(lat, lng, photoData) {
-            const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+            const key = lat.toFixed(5) + ',' + lng.toFixed(5);
 
             if (!allMarkers[key]) {
                 allMarkers[key] = { photos: [] };
@@ -1100,13 +1126,15 @@
 
         function buildMarkerHtml(count) {
             const badge = count > 1
-                ? `<div style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid white;">${count}</div>`
+                ? '<div style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid white;">' + count + '</div>'
                 : '';
-            return `<div style="position:relative;width:40px;height:40px;">
-                <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(59,130,246,0.5);border:2px solid white;"></div>
-                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);font-size:16px;">📷</div>
-                ${badge}
-            </div>`;
+            return '<div style="position:relative;width:40px;height:40px;">' +
+                '<div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(59,130,246,0.5);border:2px solid white;"></div>' +
+                '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);">' +
+                    '<svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm7-13H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5.5a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1h.586l1-1.5H17.5l.914 1.5H19a1 1 0 0 1 1 1V17.5z"/></svg>' +
+                '</div>' +
+                badge +
+                '</div>';
         }
 
         // ─────────────────────────────────────────────
@@ -1118,19 +1146,19 @@
             if (!entry) return;
 
             const photos = entry.photos;
-            const thumbs = photos.slice(0, 6).map(p =>
-                `<img class="popup-thumb" src="${p.photoUrl}" alt="사진" onclick="window.open('${p.photoUrl}','_blank')">`
-            ).join('');
+            const thumbs = photos.slice(0, 6).map(function (p) {
+                return '<img class="popup-thumb" src="' + p.photoUrl + '" alt="사진" onclick="window.open(\'' + p.photoUrl + '\',\'_blank\')">';
+            }).join('');
 
             const bizNumbers = [...new Set(photos.map(p => p.bizNumber))].join(', ');
 
-            const content = `<div class="marker-popup">
-                <div class="popup-biz">📋 ${bizNumbers}</div>
-                <div class="popup-meta">${photos[0].datetime || ''} · ${photos[0].photographer || ''}</div>
-                <div class="popup-count-badge">사진 ${photos.length}장</div>
-                <div class="popup-thumb-grid">${thumbs}</div>
-                <button class="popup-add-btn" onclick="addPhotoToMarker('${key}')">📷 이 위치에 추가 촬영</button>
-            </div>`;
+            const content = '<div class="marker-popup">' +
+                '<div class="popup-biz">' + bizNumbers + '</div>' +
+                '<div class="popup-meta">' + (photos[0].datetime || '') + ' · ' + (photos[0].photographer || '') + '</div>' +
+                '<div class="popup-count-badge">사진 ' + photos.length + '장</div>' +
+                '<div class="popup-thumb-grid">' + thumbs + '</div>' +
+                '<button class="popup-add-btn" onclick="addPhotoToMarker(\'' + key + '\')">이 위치에 추가 촬영</button>' +
+                '</div>';
 
             infowindow = new naver.maps.InfoWindow({
                 content,
@@ -1142,30 +1170,20 @@
             infowindow.open(map, entry.marker);
         }
 
+        // 마커에서 추가 촬영 (업체번호 자동 세팅)
         window.addPhotoToMarker = function (key) {
             if (infowindow) infowindow.close();
-            const [lat, lng] = key.split(',').map(Number);
-            pendingLatLng = { lat, lng };
+            const parts = key.split(',');
+            pendingLatLng = { lat: parseFloat(parts[0]), lng: parseFloat(parts[1]) };
+            // 해당 마커의 업체번호 자동 세팅
+            const entry = allMarkers[key];
+            if (entry && entry.photos.length > 0) {
+                pendingBizNumber = entry.photos[0].bizNumber || '';
+            } else {
+                pendingBizNumber = '';
+            }
             document.getElementById('camera-input').click();
         };
-
-        // ─────────────────────────────────────────────
-        //  연속 촬영 토글
-        // ─────────────────────────────────────────────
-        function toggleContinuous() {
-            isContinuous = !isContinuous;
-            const btn = document.getElementById('continuous-btn');
-            const svg = btn.querySelector('svg');
-            if (isContinuous) {
-                btn.classList.add('active');
-                svg.setAttribute('fill', 'white');
-                showToast('🔄 연속 촬영 모드 ON', 'info');
-            } else {
-                btn.classList.remove('active');
-                svg.setAttribute('fill', '#64748b');
-                showToast('연속 촬영 모드 OFF', 'info');
-            }
-        }
 
         // ─────────────────────────────────────────────
         //  바텀시트
@@ -1178,12 +1196,15 @@
         function closeBottomSheet() {
             document.getElementById('bottom-sheet-overlay').classList.remove('show');
             document.getElementById('bottom-sheet').classList.remove('open');
-            // 초기화
-            currentPhoto = null;
-            document.getElementById('photo-preview').style.display = 'none';
-            document.getElementById('photo-preview-placeholder').style.display = 'block';
+            // 촬영 배열 초기화
+            capturedPhotos = [];
+            pendingLatLng = null;
+            pendingBizNumber = '';
+            // 입력 필드 초기화
             document.getElementById('input-biz').value = '';
             document.getElementById('input-memo').value = '';
+            // 촬영종료 바 제거
+            updateCaptureUI();
         }
 
         // ─────────────────────────────────────────────
@@ -1197,11 +1218,11 @@
 
         function savePhotographer() {
             const name = document.getElementById('photographer-input').value.trim();
-            if (!name) { showToast('⚠️ 이름을 입력해주세요.', 'error'); return; }
+            if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
             localStorage.setItem('photographer_name', name);
             document.getElementById('photographer-name').textContent = name;
             document.getElementById('photographer-overlay').classList.add('hidden');
-            showToast('✅ 촬영자 설정 완료', 'success');
+            showToast('촬영자 설정 완료', 'success');
         }
 
         // Enter 키로 저장
@@ -1213,12 +1234,13 @@
         //  토스트
         // ─────────────────────────────────────────────
         let toastTimer = null;
-        function showToast(message, type = 'info') {
+        function showToast(message, type) {
+            type = type || 'info';
             const toast = document.getElementById('toast');
-            const icons = { success: '✓', error: '✕', info: 'ℹ' };
-            document.getElementById('toast-icon').textContent = icons[type] || 'ℹ';
+            const icons = { success: '✓', error: '✕', info: 'i' };
+            document.getElementById('toast-icon').textContent = icons[type] || 'i';
             document.getElementById('toast-msg').textContent = message;
-            toast.className = `show ${type}`;
+            toast.className = 'show ' + type;
             if (toastTimer) clearTimeout(toastTimer);
             toastTimer = setTimeout(() => toast.className = '', 3000);
         }

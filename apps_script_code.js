@@ -78,11 +78,15 @@ function formatDateStr(d) {
 }
 
 function formatDateTime(d) {
-  const date = formatDateStr(d);
-  const h = String(d.getHours()).padStart(2, '0');
+  // 한국표준시(KST = UTC+9) 기준 한글 날짜 형식
+  const y = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const day = d.getDate();
+  const h = d.getHours();
   const min = String(d.getMinutes()).padStart(2, '0');
-  const s = String(d.getSeconds()).padStart(2, '0');
-  return `${date} ${h}:${min}:${s}`;
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${y}년 ${mo}월 ${day}일 ${ampm} ${h12}:${min}`;
 }
 
 // ── doPost ─────────────────────────────────────────────────
