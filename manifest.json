@@ -1,10 +1,18 @@
 {
   "name": "상권 현장 촬영",
   "short_name": "현장촬영",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "description": "상권 현장 방문 시 사진을 촬영하고 관리하는 시스템",
-  "orientation": "portrait"
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }
