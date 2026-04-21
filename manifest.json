@@ -1,0 +1,10 @@
+{
+  "name": "상권 현장 촬영",
+  "short_name": "현장촬영",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "상권 현장 방문 시 사진을 촬영하고 관리하는 시스템",
+  "orientation": "portrait"
+}

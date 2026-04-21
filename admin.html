@@ -12,6 +12,14 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=yunk7qz7lm"></script>
+    <link rel="manifest" href="manifest.json">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('./sw.js');
+        });
+      }
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100;300;400;600;700;900&display=swap');
 
@@ -362,31 +370,41 @@
                 const validRecords = records.filter(r => r.lat && r.lng);
                 const groups = {};
                 validRecords.forEach(r => {
-                    if (!groups[r.bizNumber]) groups[r.bizNumber] = [];
-                    groups[r.bizNumber].push(r);
+                    const key = Number(r.lat).toFixed(5) + ',' + Number(r.lng).toFixed(5);
+                    if (!groups[key]) groups[key] = [];
+                    groups[key].push(r);
                 });
 
-                Object.entries(groups).forEach(([biz, photos]) => {
+                Object.entries(groups).forEach(([coordKey, photos]) => {
                     const first = photos[0];
                     const count = photos.length;
+                    
+                    const badgeHtml = count > 1 ? `
+                        <circle cx="28" cy="8" r="7" fill="white" stroke="#333" stroke-width="1.5"/>
+                        <text x="28" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#333" font-family="sans-serif">${count}</text>
+                    ` : '';
+
                     const marker = new naver.maps.Marker({
                         position: new naver.maps.LatLng(first.lat, first.lng),
                         map: mapInstanceRef.current,
                         icon: {
-                            content: `<div style="position:relative;width:40px;height:40px;">
-                                <div style="width:40px;height:40px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(59,130,246,0.5);border:2px solid white;"></div>
-                                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-60%);"><svg viewBox='0 0 24 24' width='14' height='14' fill='white'><path d='M12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7zm7-13H5a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V5.5a3 3 0 0 0-3-3zm1 15a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5.5a1 1 0 0 1 1-1h.586l1-1.5H17.5l.914 1.5H19a1 1 0 0 1 1 1V17.5z'/></svg></div>
-                                ${count > 1 ? `<div style="position:absolute;top:-4px;right:-4px;background:#ef4444;color:white;font-size:9px;font-weight:900;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1.5px solid white;">${count}</div>` : ''}
-                            </div>`,
-                            anchor: new naver.maps.Point(20, 40)
+                            content: \`<div style="width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                                <svg width="36" height="36" viewBox="0 0 40 40">
+                                    <path d="M16 8C10.5 8 6 12.5 6 18c0 7.5 10 15 10 15s10-7.5 10-15c0-5.5-4.5-10-10-10z" fill="#3b82f6"/>
+                                    <circle cx="16" cy="18" r="4" fill="white"/>
+                                    \${badgeHtml}
+                                </svg>
+                            </div>\`,
+                            anchor: new naver.maps.Point(16, 33)
                         }
                     });
 
+                    const bizList = [...new Set(photos.map(p => p.bizNumber))].join(', ');
                     const iw = new naver.maps.InfoWindow({
-                        content: `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
-                            <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${biz}</div>
-                            <div style="font-size:11px;color:#64748b;font-weight:600;">사진 ${count}장 · ${first.photographer}</div>
-                        </div>`,
+                        content: \`<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
+                            <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">\${bizList}</div>
+                            <div style="font-size:11px;color:#64748b;font-weight:600;">사진 \${count}장 · \${first.photographer} 등</div>
+                        </div>\`,
                         borderWidth: 0,
                         backgroundColor: 'white',
                         borderColor: 'transparent',
