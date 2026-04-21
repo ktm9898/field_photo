@@ -388,23 +388,23 @@
                         position: new naver.maps.LatLng(first.lat, first.lng),
                         map: mapInstanceRef.current,
                         icon: {
-                            content: \`<div style="width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+                            content: `<div style="width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
                                 <svg width="36" height="36" viewBox="0 0 40 40">
                                     <path d="M16 8C10.5 8 6 12.5 6 18c0 7.5 10 15 10 15s10-7.5 10-15c0-5.5-4.5-10-10-10z" fill="#3b82f6"/>
                                     <circle cx="16" cy="18" r="4" fill="white"/>
-                                    \${badgeHtml}
+                                    ${badgeHtml}
                                 </svg>
-                            </div>\`,
+                            </div>`,
                             anchor: new naver.maps.Point(16, 33)
                         }
                     });
 
                     const bizList = [...new Set(photos.map(p => p.bizNumber))].join(', ');
                     const iw = new naver.maps.InfoWindow({
-                        content: \`<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
-                            <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">\${bizList}</div>
-                            <div style="font-size:11px;color:#64748b;font-weight:600;">사진 \${count}장 · \${first.photographer} 등</div>
-                        </div>\`,
+                        content: `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
+                            <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${bizList}</div>
+                            <div style="font-size:11px;color:#64748b;font-weight:600;">사진 ${count}장 · ${first.photographer} 등</div>
+                        </div>`,
                         borderWidth: 0,
                         backgroundColor: 'white',
                         borderColor: 'transparent',
