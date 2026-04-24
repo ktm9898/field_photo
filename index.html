@@ -797,6 +797,9 @@
 
             // 카메라 input 이벤트
             document.getElementById('camera-input').addEventListener('change', onPhotoSelected);
+
+            // 페이지 리로드 시 촬영 중이던 사진 복원
+            restoreCaptureState();
         };
 
         // ─────────────────────────────────────────────
@@ -910,6 +913,45 @@
         }
 
         // ─────────────────────────────────────────────
+        //  촬영 상태 백업/복원 (모바일 카메라 앱 메모리 해제 대응)
+        // ─────────────────────────────────────────────
+        function saveCaptureState() {
+            try {
+                const state = {
+                    photos: capturedPhotos.map(function (p) {
+                        return { dataUrl: p.dataUrl, mimeType: p.mimeType, gps: p.gps };
+                    }),
+                    pendingLatLng: pendingLatLng,
+                    pendingBizNumber: pendingBizNumber
+                };
+                sessionStorage.setItem('fp_capture_state', JSON.stringify(state));
+            } catch (e) {
+                console.warn('촬영 상태 저장 실패:', e);
+            }
+        }
+
+        function restoreCaptureState() {
+            try {
+                const saved = sessionStorage.getItem('fp_capture_state');
+                if (!saved) return;
+                var state = JSON.parse(saved);
+                if (state.photos && state.photos.length > 0) {
+                    capturedPhotos = state.photos;
+                    pendingLatLng = state.pendingLatLng || null;
+                    pendingBizNumber = state.pendingBizNumber || '';
+                    updateCaptureUI();
+                    showToast('촬영 중이던 사진 ' + capturedPhotos.length + '장 복원됨', 'info');
+                }
+            } catch (e) {
+                console.warn('촬영 상태 복원 실패:', e);
+            }
+        }
+
+        function clearCaptureState() {
+            sessionStorage.removeItem('fp_capture_state');
+        }
+
+        // ─────────────────────────────────────────────
         //  촬영 버튼 클릭
         // ─────────────────────────────────────────────
         function onCaptureClick() {
@@ -941,10 +983,14 @@
                 pendingLatLng = { lat: gps.lat, lng: gps.lng };
             }
 
-            resizeImage(file, 1920).then(({ dataUrl, blob, mimeType }) => {
-                capturedPhotos.push({ dataUrl, blob, mimeType, gps });
+            resizeImage(file, 1920).then(function (result) {
+                capturedPhotos.push({ dataUrl: result.dataUrl, blob: result.blob, mimeType: result.mimeType, gps: gps });
                 updateCaptureUI();
+                saveCaptureState();
                 showToast(capturedPhotos.length + '장 촬영되었습니다.', 'success');
+            }).catch(function (err) {
+                console.error('이미지 처리 오류:', err);
+                showToast('사진 처리 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
             });
 
             // Input 초기화 (동일 파일 재선택 허용)
@@ -956,6 +1002,7 @@
             capturedPhotos = [];
             pendingLatLng = null;
             pendingBizNumber = '';
+            clearCaptureState();
             updateCaptureUI();
             showToast('촬영된 사진을 삭제했습니다.', 'info');
         };
@@ -1342,6 +1389,7 @@
             capturedPhotos = [];
             pendingLatLng = null;
             pendingBizNumber = '';
+            clearCaptureState();
             // 입력 필드 초기화
             document.getElementById('input-biz').value = '';
             document.getElementById('input-memo').value = '';
