@@ -1305,17 +1305,37 @@
             }
             allMarkers[key].photos.push(photoData);
 
-            // 마커 아이콘 갱신
-            const count = allMarkers[key].photos.length;
+            // 마커 아이콘 갱신 — 업체 수 기준
+            const bizCount = getBizCount(key);
             allMarkers[key].marker.setIcon({
-                content: buildMarkerHtml(count),
+                content: buildMarkerHtml(bizCount),
                 anchor: new naver.maps.Point(16, 33)
             });
         }
 
-        function buildMarkerHtml(count) {
-            const badgeHtml = count > 1
-                ? '<circle cx="28" cy="8" r="7" fill="white" stroke="#333" stroke-width="1.5"/><text x="28" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#333" font-family="sans-serif">' + count + '</text>'
+        // 해당 마커의 고유 업체 수
+        function getBizCount(key) {
+            const entry = allMarkers[key];
+            if (!entry) return 0;
+            return [...new Set(entry.photos.map(p => p.bizNumber).filter(Boolean))].length;
+        }
+
+        // 해당 마커의 업체별 사진 그룹핑
+        function groupPhotosByBiz(key) {
+            const entry = allMarkers[key];
+            if (!entry) return {};
+            const groups = {};
+            entry.photos.forEach(function (p) {
+                const biz = p.bizNumber || '(미지정)';
+                if (!groups[biz]) groups[biz] = [];
+                groups[biz].push(p);
+            });
+            return groups;
+        }
+
+        function buildMarkerHtml(bizCount) {
+            const badgeHtml = bizCount > 1
+                ? '<circle cx="28" cy="8" r="7" fill="white" stroke="#333" stroke-width="1.5"/><text x="28" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#333" font-family="sans-serif">' + bizCount + '</text>'
                 : '';
             return '<div style="width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;">' +
                 '<svg width="36" height="36" viewBox="0 0 40 40">' +
@@ -1326,51 +1346,115 @@
         }
 
         // ─────────────────────────────────────────────
-        //  마커 팝업
+        //  마커 팝업 — 업체가 여러 개면 목록, 1개면 바로 상세
         // ─────────────────────────────────────────────
         function showMarkerPopup(key) {
             if (infowindow) infowindow.close();
             const entry = allMarkers[key];
             if (!entry) return;
 
-            const photos = entry.photos;
-            const thumbs = photos.slice(0, 6).map(function (p) {
-                const thumbSrc = toThumbUrl(p.photoUrl);
-                return '<img class="popup-thumb" src="' + thumbSrc + '" alt="사진" onclick="window.open(\'' + p.photoUrl + '\',\'_blank\')">';
-            }).join('');
+            const bizGroups = groupPhotosByBiz(key);
+            const bizKeys = Object.keys(bizGroups);
 
-            const bizNumbers = [...new Set(photos.map(p => p.bizNumber))].join(', ');
+            if (bizKeys.length <= 1) {
+                showBizDetailPopup(key, bizKeys[0], false);
+            } else {
+                showBizListPopup(key, bizGroups);
+            }
+        }
 
-            const content = '<div class="marker-popup">' +
-                '<div class="popup-biz">' + bizNumbers + '</div>' +
-                '<div class="popup-meta">' + toKrDateTimeStr(photos[0].datetime || '') + '</div>' +
-                '<div class="popup-count-badge">사진 ' + photos.length + '장</div>' +
-                '<div class="popup-thumb-grid">' + thumbs + '</div>' +
+        // 업체 목록 팝업
+        function showBizListPopup(key, bizGroups) {
+            var listHtml = '<div class="marker-popup">' +
+                '<div style="font-size:12px;font-weight:800;color:#94a3b8;margin-bottom:10px;border-bottom:1px solid #e2e8f0;padding-bottom:8px;">' +
+                '이 위치에 ' + Object.keys(bizGroups).length + '개 업체</div>' +
+                '<div style="max-height:240px;overflow-y:auto;">';
+
+            Object.keys(bizGroups).forEach(function (biz) {
+                var photos = bizGroups[biz];
+                var thumbSrc = toThumbUrl(photos[0].photoUrl);
+                var safeBiz = biz.replace(/'/g, "\\'");
+                listHtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;cursor:pointer;border-bottom:1px solid #f1f5f9;" ' +
+                    'onclick="showBizDetailFromList(\'' + key + '\',\'' + safeBiz + '\')">' +
+                    '<img src="' + thumbSrc + '" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0;border:1px solid #e2e8f0;" onerror="this.style.display=\'none\'">' +
+                    '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:13px;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + biz + '</div>' +
+                    '<div style="font-size:11px;color:#94a3b8;font-weight:600;">사진 ' + photos.length + '장</div>' +
+                    '</div>' +
+                    '<div style="font-size:16px;color:#cbd5e1;flex-shrink:0;">›</div>' +
+                    '</div>';
+            });
+
+            listHtml += '</div>' +
                 '<button class="popup-add-btn" onclick="addPhotoToMarker(\'' + key + '\')">이 위치에 추가 촬영</button>' +
                 '</div>';
 
             infowindow = new naver.maps.InfoWindow({
-                content,
-                borderWidth: 0,
-                backgroundColor: 'transparent',
-                disableAnchor: true,
-                pixelOffset: new naver.maps.Point(0, -10)
+                content: listHtml, borderWidth: 0, backgroundColor: 'transparent',
+                disableAnchor: true, pixelOffset: new naver.maps.Point(0, -10)
+            });
+            infowindow.open(map, allMarkers[key].marker);
+        }
+
+        // 업체 상세 팝업
+        function showBizDetailPopup(key, bizNumber, showBack) {
+            var entry = allMarkers[key];
+            if (!entry) return;
+
+            var bizGroups = groupPhotosByBiz(key);
+            var photos = bizGroups[bizNumber] || entry.photos;
+            var safeBiz = (bizNumber || '').replace(/'/g, "\\'");
+
+            var thumbs = photos.slice(0, 6).map(function (p) {
+                var thumbSrc = toThumbUrl(p.photoUrl);
+                return '<img class="popup-thumb" src="' + thumbSrc + '" alt="사진" onclick="window.open(\'' + p.photoUrl + '\',\'_blank\')">';
+            }).join('');
+
+            var backBtn = showBack
+                ? '<button style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#64748b;cursor:pointer;margin-bottom:10px;" onclick="showMarkerPopupFromDetail(\'' + key + '\')">← 목록</button>'
+                : '';
+
+            var content = '<div class="marker-popup">' + backBtn +
+                '<div class="popup-biz">' + bizNumber + '</div>' +
+                '<div class="popup-meta">' + toKrDateTimeStr(photos[0].datetime || '') + '</div>' +
+                '<div class="popup-count-badge">사진 ' + photos.length + '장</div>' +
+                '<div class="popup-thumb-grid">' + thumbs + '</div>' +
+                '<button class="popup-add-btn" onclick="addPhotoToMarkerBiz(\'' + key + '\',\'' + safeBiz + '\')">이 위치에 추가 촬영</button>' +
+                '</div>';
+
+            if (infowindow) infowindow.close();
+            infowindow = new naver.maps.InfoWindow({
+                content: content, borderWidth: 0, backgroundColor: 'transparent',
+                disableAnchor: true, pixelOffset: new naver.maps.Point(0, -10)
             });
             infowindow.open(map, entry.marker);
         }
 
-        // 마커에서 추가 촬영 (업체번호 자동 세팅)
+        // 목록에서 업체 클릭 → 상세
+        window.showBizDetailFromList = function (key, biz) {
+            showBizDetailPopup(key, biz, true);
+        };
+
+        // 상세에서 ← 목록 클릭
+        window.showMarkerPopupFromDetail = function (key) {
+            showMarkerPopup(key);
+        };
+
+        // 마커에서 추가 촬영 (업체번호 미지정)
         window.addPhotoToMarker = function (key) {
             if (infowindow) infowindow.close();
             const parts = key.split(',');
             pendingLatLng = { lat: parseFloat(parts[0]), lng: parseFloat(parts[1]) };
-            // 해당 마커의 업체번호 자동 세팅
-            const entry = allMarkers[key];
-            if (entry && entry.photos.length > 0) {
-                pendingBizNumber = entry.photos[0].bizNumber || '';
-            } else {
-                pendingBizNumber = '';
-            }
+            pendingBizNumber = '';
+            document.getElementById('camera-input').click();
+        };
+
+        // 마커에서 특정 업체번호로 추가 촬영
+        window.addPhotoToMarkerBiz = function (key, biz) {
+            if (infowindow) infowindow.close();
+            const parts = key.split(',');
+            pendingLatLng = { lat: parseFloat(parts[0]), lng: parseFloat(parts[1]) };
+            pendingBizNumber = biz || '';
             document.getElementById('camera-input').click();
         };
 
