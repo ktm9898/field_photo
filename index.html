@@ -1087,7 +1087,7 @@
                     if (result.success) {
                         addOrUpdateMarker(gps.lat, gps.lng, {
                             bizNumber, photographer, memo,
-                            datetime: new Date().toLocaleString('ko-KR'),
+                            datetime: formatDateTimeKr(new Date()),
                             photoUrl: result.fileUrl
                         });
                         successCount++;
@@ -1152,6 +1152,20 @@
                 document.getElementById('upload-progress-text').textContent = '사진을 업로드하는 중...'; // 복구
             }
             overlay.classList.toggle('show', loading);
+        }
+
+        // ─────────────────────────────────────────────
+        //  한국어 날짜/시간 포맷 (Apps Script와 동일 형식)
+        // ─────────────────────────────────────────────
+        function formatDateTimeKr(d) {
+            const y = d.getFullYear();
+            const mo = d.getMonth() + 1;
+            const day = d.getDate();
+            const h = d.getHours();
+            const min = String(d.getMinutes()).padStart(2, '0');
+            const ampm = h < 12 ? '오전' : '오후';
+            const h12 = h % 12 === 0 ? 12 : h % 12;
+            return y + '년 ' + mo + '월 ' + day + '일 ' + ampm + ' ' + h12 + ':' + min;
         }
 
         // ─────────────────────────────────────────────
