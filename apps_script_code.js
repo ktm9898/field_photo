@@ -113,6 +113,12 @@ function doPost(e) {
       return handleSendEmail(data);
     }
 
+    // 4) 내 사진 조회 (촬영자 이름 + 이메일로 필터)
+    if (data.action === 'getMyPhotos') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleGetMyPhotos(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -266,4 +272,43 @@ function handleSendEmail(data) {
   }
 
   return jsonResponse({ success: true });
+}
+
+// ── 내 사진 조회 (촬영자 이름 + 이메일로 필터) ───────────────
+function handleGetMyPhotos(data) {
+  const photographer = (data.photographer || '').trim();
+  const email = (data.email || '').trim();
+  if (!photographer) return jsonResponse({ success: false, error: '촬영자 이름이 필요합니다.' });
+
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
+
+  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  const records = [];
+  for (let idx = 0; idx < values.length; idx++) {
+    const row = values[idx];
+    const rowPhotographer = String(row[2] || '').trim();
+    const rowEmail = String(row[10] || '').trim();
+    // 촬영자 이름이 같고, 이메일이 같은 경우에만 포함
+    if (rowPhotographer === photographer && rowEmail === email) {
+      const photoUrl = String(row[6] || '');
+      if (!photoUrl) continue;
+      records.push({
+        datetime:     row[0] ? String(row[0]) : '',
+        bizNumber:    String(row[1] || ''),
+        photographer: rowPhotographer,
+        lat:          row[3] !== '' ? Number(row[3]) : null,
+        lng:          row[4] !== '' ? Number(row[4]) : null,
+        address:      String(row[5] || ''),
+        photoUrl:     photoUrl,
+        fileId:       String(row[7] || ''),
+        memo:         String(row[8] || '')
+      });
+    }
+  }
+
+  return jsonResponse({ success: true, data: records, total: records.length });
 }
