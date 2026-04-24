@@ -917,7 +917,10 @@
                 showToast('GPS를 아직 수신하지 못했습니다. 잠시 기다려주세요.', 'error');
                 return;
             }
-            pendingLatLng = null; // 새 위치에서 촬영
+            // 연속촬영 중이면 첫 촬영 위치 유지, 새 세션이면 초기화
+            if (capturedPhotos.length === 0) {
+                pendingLatLng = null;
+            }
             document.getElementById('camera-input').click();
         }
 
@@ -932,6 +935,11 @@
             const gps = pendingLatLng
                 ? { lat: pendingLatLng.lat, lng: pendingLatLng.lng }
                 : (currentGPS ? { lat: currentGPS.lat, lng: currentGPS.lng } : null);
+
+            // 첫 촬영 시 위치를 고정하여 연속촬영이 같은 마커로 묶이도록 함
+            if (!pendingLatLng && gps) {
+                pendingLatLng = { lat: gps.lat, lng: gps.lng };
+            }
 
             resizeImage(file, 1920).then(({ dataUrl, blob, mimeType }) => {
                 capturedPhotos.push({ dataUrl, blob, mimeType, gps });
