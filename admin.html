@@ -527,7 +527,13 @@
                 // 한국 시간 기준 오늘 날짜 문자열 (시트에 저장된 형식과 매칭)
                 const now = new Date();
                 const todayKr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일';
+                console.log('[DEBUG] todayKr:', JSON.stringify(todayKr));
+                if (records.length > 0) {
+                    console.log('[DEBUG] 첫 레코드 datetime:', JSON.stringify(records[0].datetime));
+                    console.log('[DEBUG] includes 결과:', records[0].datetime?.includes(todayKr));
+                }
                 const todayCount = records.filter(r => r.datetime && r.datetime.includes(todayKr)).length;
+                console.log('[DEBUG] todayCount:', todayCount);
                 const bizSet = new Set(records.map(r => r.bizNumber).filter(Boolean));
                 const photographerSet = new Set(records.map(r => r.photographer).filter(Boolean));
                 return { total: records.length, today: todayCount, bizCount: bizSet.size, photographerCount: photographerSet.size };
