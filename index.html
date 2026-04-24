@@ -1168,6 +1168,17 @@
             return y + '년 ' + mo + '월 ' + day + '일 ' + ampm + ' ' + h12 + ':' + min;
         }
 
+        // 날짜 문자열 → 한국어 형식 변환 (영문 Date 문자열도 대응)
+        function toKrDateTimeStr(dtStr) {
+            if (!dtStr) return '';
+            // 이미 한글 형식이면 그대로
+            if (dtStr.includes('년') && dtStr.includes('월')) return dtStr;
+            // JS Date 문자열 파싱
+            const d = new Date(dtStr);
+            if (!isNaN(d.getTime())) return formatDateTimeKr(d);
+            return dtStr;
+        }
+
         // ─────────────────────────────────────────────
         //  Google Drive URL → 썸네일 URL 변환
         // ─────────────────────────────────────────────
@@ -1285,7 +1296,7 @@
 
             const content = '<div class="marker-popup">' +
                 '<div class="popup-biz">' + bizNumbers + '</div>' +
-                '<div class="popup-meta">' + (photos[0].datetime || '') + ' · ' + (photos[0].photographer || '') + '</div>' +
+                '<div class="popup-meta">' + toKrDateTimeStr(photos[0].datetime || '') + ' · ' + (photos[0].photographer || '') + '</div>' +
                 '<div class="popup-count-badge">사진 ' + photos.length + '장</div>' +
                 '<div class="popup-thumb-grid">' + thumbs + '</div>' +
                 '<button class="popup-add-btn" onclick="addPhotoToMarker(\'' + key + '\')">이 위치에 추가 촬영</button>' +

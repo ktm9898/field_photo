@@ -480,18 +480,25 @@
                 return ok;
             };
 
+            // datetime 문자열 → YYYY-MM-DD 변환 (한글 형식 / JS Date 문자열 모두 대응)
+            const toDateKey = (dt) => {
+                if (!dt) return '';
+                // 한글 형식: "2026년 4월 24일 ..."
+                const krMatch = dt.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
+                if (krMatch) {
+                    return krMatch[1] + '-' + String(krMatch[2]).padStart(2, '0') + '-' + String(krMatch[3]).padStart(2, '0');
+                }
+                // JS Date 문자열: "Fri Apr 24 2026 10:23:00 GMT+0900 ..."
+                const d = new Date(dt);
+                if (!isNaN(d.getTime())) {
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                }
+                return dt.substring(0, 10);
+            };
+
             const filteredRecords = useMemo(() => {
                 return records.filter(r => {
-                    // 한글 날짜 형식 "2026년 4월 24일 ..." 에서 날짜 추출하여 YYYY-MM-DD로 변환
-                    let dateKey = '';
-                    if (r.datetime) {
-                        const m = r.datetime.match(/(\d{4})년\s*(\d{1,2})월\s*(\d{1,2})일/);
-                        if (m) {
-                            dateKey = m[1] + '-' + String(m[2]).padStart(2, '0') + '-' + String(m[3]).padStart(2, '0');
-                        } else {
-                            dateKey = r.datetime.substring(0, 10);
-                        }
-                    }
+                    const dateKey = toDateKey(r.datetime);
                     if (appliedFilter.dateFrom && dateKey < appliedFilter.dateFrom) return false;
                     if (appliedFilter.dateTo && dateKey > appliedFilter.dateTo) return false;
                     if (appliedFilter.searchBiz && !r.bizNumber.includes(appliedFilter.searchBiz)) return false;
@@ -524,16 +531,9 @@
             }, [filteredRecords]);
 
             const stats = useMemo(() => {
-                // 한국 시간 기준 오늘 날짜 문자열 (시트에 저장된 형식과 매칭)
                 const now = new Date();
-                const todayKr = now.getFullYear() + '년 ' + (now.getMonth() + 1) + '월 ' + now.getDate() + '일';
-                console.log('[DEBUG] todayKr:', JSON.stringify(todayKr));
-                if (records.length > 0) {
-                    console.log('[DEBUG] 첫 레코드 datetime:', JSON.stringify(records[0].datetime));
-                    console.log('[DEBUG] includes 결과:', records[0].datetime?.includes(todayKr));
-                }
-                const todayCount = records.filter(r => r.datetime && r.datetime.includes(todayKr)).length;
-                console.log('[DEBUG] todayCount:', todayCount);
+                const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+                const todayCount = records.filter(r => toDateKey(r.datetime) === todayKey).length;
                 const bizSet = new Set(records.map(r => r.bizNumber).filter(Boolean));
                 const photographerSet = new Set(records.map(r => r.photographer).filter(Boolean));
                 return { total: records.length, today: todayCount, bizCount: bizSet.size, photographerCount: photographerSet.size };
