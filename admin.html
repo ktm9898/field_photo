@@ -714,14 +714,14 @@
                                 <table className="w-full text-sm border-collapse min-w-[900px]">
                                     <thead>
                                         <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200">
-                                            <th className="pl-6 pr-2 py-3 text-center w-12">#</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap">업체번호</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap">썸네일</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap" style={{width:'150px'}}>촬영일시</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap">촬영자</th>
-                                            <th className="px-3 py-3 text-center whitespace-nowrap">위치</th>
-                                            <th className="px-3 py-3 text-center" style={{minWidth:'100px',maxWidth:'160px'}}>메모</th>
-                                            <th className="px-3 py-3 text-center pr-8 whitespace-nowrap">작업</th>
+                                            <th className="pl-8 pr-4 py-3 text-center w-14">#</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap">업체번호</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap">썸네일</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap" style={{width:'150px'}}>촬영일시</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap">촬영자</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap">위치</th>
+                                            <th className="px-6 py-3 text-center" style={{minWidth:'100px',maxWidth:'160px'}}>메모</th>
+                                            <th className="px-6 py-3 text-center pr-4 whitespace-nowrap">작업</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -740,13 +740,13 @@
                                             </tr>
                                                 ) : groupedRecords.map((r, idx) => (
                                             <tr key={idx} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
-                                                <td className="pl-6 pr-2 py-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
-                                                <td className="px-3 py-3 text-center">
+                                                <td className="pl-8 pr-4 py-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
+                                                <td className="px-6 py-3 text-center">
                                                     <div className="font-black text-slate-700 text-sm">
                                                         {r.bizNumber || '-'}
                                                     </div>
                                                 </td>
-                                                <td className="px-3 py-3 text-center">
+                                                <td className="px-6 py-3 text-center">
                                                     {r.photoUrl ? (
                                                         <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
                                                             className="w-14 h-14 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity mx-auto"
@@ -757,7 +757,7 @@
                                                         </div>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-center text-xs font-bold text-slate-600" style={{width:'150px'}}>
+                                                <td className="px-6 py-3 text-center text-xs font-bold text-slate-600" style={{width:'150px'}}>
                                                     {(() => {
                                                         const str = formatDateKr(r.datetime);
                                                         const ampmIdx = str.indexOf('오전') !== -1 ? str.indexOf('오전') : str.indexOf('오후');
@@ -765,12 +765,12 @@
                                                         return str;
                                                     })()}
                                                 </td>
-                                                <td className="px-3 py-3 text-center">
+                                                <td className="px-6 py-3 text-center">
                                                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
                                                         {r.photographer || '-'}
                                                     </span>
                                                 </td>
-                                                <td className="px-3 py-3 text-center">
+                                                <td className="px-6 py-3 text-center">
                                                     {(r.address || (r.lat && r.lng)) ? (
                                                         <span className="text-xs text-emerald-600 font-bold">
                                                             {r.address || (Number(r.lat).toFixed(4) + ', ' + Number(r.lng).toFixed(4))}
@@ -779,12 +779,12 @@
                                                         <span className="text-xs text-slate-300">-</span>
                                                     )}
                                                 </td>
-                                                <td className="px-3 py-3 text-center" style={{minWidth:'100px',maxWidth:'160px'}}>
+                                                <td className="px-6 py-3 text-center" style={{minWidth:'100px',maxWidth:'160px'}}>
                                                     <p className="text-xs text-slate-600 font-semibold line-clamp-2 text-center">
                                                         {r.memo || <span className="text-slate-300">-</span>}
                                                     </p>
                                                 </td>
-                                                <td className="px-3 py-3 pr-8 whitespace-nowrap">
+                                                <td className="px-6 py-3 pr-4 whitespace-nowrap">
                                                     <div className="flex items-center justify-center gap-1.5 flex-nowrap shrink-0">
                                                         <button onClick={() => setPhotoModal(r)}
                                                             className="px-4 py-1.5 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg text-xs font-bold hover:bg-slate-100 transition-colors">
