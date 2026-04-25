@@ -609,19 +609,12 @@
                     
                     const res = await resp.json();
                     if (res.success) {
-                        setRecords(prev => prev.map(group => ({
-                            ...group,
-                            photos: group.photos.map(p => p.fileId === fileId ? { ...p, memo: newMemo } : p),
-                            memo: group.fileId === fileId ? newMemo : group.memo
-                        })));
-
-                        if (photoModal) {
-                            setPhotoModal(prev => ({
-                                ...prev,
-                                photos: prev.photos.map(p => p.fileId === fileId ? { ...p, memo: newMemo } : p)
-                            }));
-                        }
                         setToast({ message: '메모가 저장되었습니다.', type: 'success' });
+                        // 로컬 상태를 복잡하게 수정하는 대신 서버에서 최신 데이터를 다시 불러옵니다 (가장 안전)
+                        await loadData();
+                        
+                        // 현재 열려있는 모달의 정보도 최신 데이터에 맞춰 닫아줍니다 (사용자 편의)
+                        setEditMemoId(null);
                         return true;
                     } else {
                         throw new Error(res.error || '알 수 없는 오류');
