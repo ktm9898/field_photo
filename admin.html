@@ -825,7 +825,65 @@
                                         </span>
                                         <span className="text-xs font-bold text-slate-400">{groupedRecords.length}건 / 전체 {records.length}장</span>
                                     </div>
-                                    <div className="overflow-x-auto custom-scroll">
+
+                                    {/* ── 모바일 카드 리스트 (< 768px) ── */}
+                                    <div className="md:hidden">
+                                        {filteredRecords.length === 0 ? (
+                                            <div className="px-4 py-16 text-center">
+                                                <div className="flex flex-col items-center gap-3">
+                                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${loading ? 'bg-blue-50' : 'bg-slate-100'}`}>
+                                                        <Icon name={loading ? 'loader-2' : 'image-off'} size={32} className={loading ? 'text-blue-500 animate-spin' : 'text-slate-300'} />
+                                                    </div>
+                                                    <p className={`${loading ? 'text-blue-600' : 'text-slate-400'} font-bold`}>
+                                                        {loading ? '데이터를 불러오는 중...' : (records.length === 0 ? '등록된 사진이 없습니다.' : '검색 결과가 없습니다.')}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ) : groupedRecords.map((r, idx) => (
+                                            <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-4 py-3 hover:bg-blue-50/30 transition-colors gap-3">
+                                                {/* 연번 */}
+                                                <span className="text-xs font-black text-slate-400 w-6 shrink-0 text-center">{idx + 1}</span>
+
+                                                {/* 썸네일 */}
+                                                <div className="shrink-0">
+                                                    {r.photoUrl ? (
+                                                        <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
+                                                            className="w-11 h-11 object-cover rounded-lg border border-slate-200 cursor-pointer"
+                                                            onClick={() => { document.getElementById('lightbox-img').src = toThumbUrl(r.photoUrl); document.getElementById('lightbox').classList.remove('hidden'); }} />
+                                                    ) : (
+                                                        <div className="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center">
+                                                            <Icon name="image-off" size={18} className="text-slate-300" />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* 업체명 */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-slate-800 text-sm truncate">{r.bizNumber || '-'}</p>
+                                                    <p className="text-xs text-slate-400 font-semibold mt-0.5">{r.photos.length}장</p>
+                                                </div>
+
+                                                {/* 작업 */}
+                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                    <button onClick={() => setPhotoModal(r)}
+                                                        className="p-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors" title="갤러리">
+                                                        <Icon name="images" size={15} />
+                                                    </button>
+                                                    <button onClick={() => downloadGroup(r)}
+                                                        className="p-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors" title="다운로드">
+                                                        <Icon name="download" size={15} />
+                                                    </button>
+                                                    <button onClick={() => handleSendEmailRow(r)}
+                                                        className="p-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors" title="메일 발송">
+                                                        <Icon name="mail" size={15} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* ── PC 테이블 (>= 768px) ── */}
+                                    <div className="hidden md:block overflow-x-auto custom-scroll">
                                         <table className="w-full text-sm border-collapse min-w-[900px]">
                                             <thead>
                                                 <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200">
