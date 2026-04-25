@@ -292,8 +292,8 @@ function handleGetMyPhotos(data) {
     const row = values[idx];
     const rowPhotographer = String(row[2] || '').trim();
     const rowEmail = String(row[10] || '').trim();
-    // 촬영자 이름이 일치하면 포함 (이메일이 시트에 있는 경우 이메일까지 체크하면 더 정확하지만, 우선 이름 기반으로 노출)
-    if (rowPhotographer === photographer) {
+    // 촬영자 이름과 이메일이 모두 일치하는 경우에만 포함 (보안 강화)
+    if (rowPhotographer === photographer && rowEmail === email) {
       const photoUrl = String(row[6] || '');
       if (!photoUrl) continue;
       records.push({
