@@ -431,7 +431,13 @@
 
         // ── 메인 앱 ──
         const AdminApp = () => {
-            const [isAuth, setIsAuth] = useState(() => !!sessionStorage.getItem('fp_admin_pw'));
+            const [viewMode, setViewMode] = useState(() => {
+                const masterPw = sessionStorage.getItem('fp_admin_pw');
+                if (masterPw === ADMIN_PW) return 'master';
+                return 'personal';
+            });
+            const [isAuth, setIsAuth] = useState(false);
+            const [showLogin, setShowLogin] = useState(false);
             const [records, setRecords] = useState([]);
             const [loading, setLoading] = useState(false);
             const [toast, setToast] = useState(null);
@@ -445,23 +451,51 @@
             const [appliedFilter, setAppliedFilter] = useState({});
 
             const getPw = () => sessionStorage.getItem('fp_admin_pw') || '';
+            const getPersonalInfo = () => ({
+                name: localStorage.getItem('photographer_name') || '',
+                email: localStorage.getItem('photographer_email') || ''
+            });
 
-            const loadData = useCallback(async (forcePw) => {
+            const loadData = useCallback(async (mode, forcePw) => {
+                const targetMode = mode || viewMode;
                 const pw = forcePw || getPw();
-                if (!pw) return false;
+                const personal = getPersonalInfo();
+
+                // 모드별 권한 체크
+                if (targetMode === 'master' && pw !== ADMIN_PW) {
+                    setIsAuth(false);
+                    setShowLogin(true);
+                    return false;
+                }
+                if (targetMode === 'personal' && !personal.name) {
+                    setIsAuth(false);
+                    setShowLogin(true);
+                    return false;
+                }
+
                 setLoading(true);
                 try {
+                    const payload = targetMode === 'master' 
+                        ? { action: 'getAll', key: API_SECRET, pw }
+                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, email: personal.email };
+
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        body: JSON.stringify({ action: 'getAll', key: API_SECRET, pw })
+                        body: JSON.stringify(payload)
                     });
                     const data = await resp.json();
                     if (data.success) {
                         setRecords(data.data || []);
-                        setToast({ message: (data.total || 0) + '건의 사진 데이터를 불러왔습니다.', type: 'success' });
+                        setIsAuth(true);
+                        setShowLogin(false);
+                        setViewMode(targetMode);
+                        setToast({ message: `${targetMode === 'master' ? '전체' : '내'} 사진 ${data.total || 0}건을 불러왔습니다.`, type: 'success' });
                         return true;
                     } else {
                         setToast({ message: data.error || '오류 발생', type: 'error' });
+                        if (targetMode === 'master') {
+                            setShowLogin(true);
+                        }
                         return false;
                     }
                 } catch (err) {
@@ -470,14 +504,26 @@
                 } finally {
                     setLoading(false);
                 }
+            }, [viewMode]);
+
+            useEffect(() => {
+                loadData();
             }, []);
 
-            useEffect(() => { if (isAuth) loadData(); }, [isAuth]);
-
             const handleLogin = async (pw) => {
-                const ok = await loadData(pw);
-                if (ok) { sessionStorage.setItem('fp_admin_pw', pw); setIsAuth(true); }
+                const ok = await loadData('master', pw);
+                if (ok) { 
+                    sessionStorage.setItem('fp_admin_pw', pw);
+                }
                 return ok;
+            };
+
+            const switchMode = (mode) => {
+                if (mode === 'master' && getPw() !== ADMIN_PW) {
+                    setShowLogin(true);
+                } else {
+                    loadData(mode);
+                }
             };
 
             // datetime 문자열 → YYYY-MM-DD 변환 (한글 형식 / JS Date 문자열 모두 대응)
@@ -587,6 +633,12 @@
                 }
             };
 
+            if (showLogin) return <Login onLogin={handleLogin} />;
+            if (!isAuth && loading) return (
+                <div className="min-h-screen bg-slate-100 flex items-center justify-center">
+                    <Icon name="loader-2" size={40} className="text-blue-500 animate-spin" />
+                </div>
+            );
             if (!isAuth) return <Login onLogin={handleLogin} />;
 
             return (
@@ -601,18 +653,40 @@
                                         <Icon name="camera" size={22} className="text-white" />
                                     </div>
                                     <div>
-                                        <h1 className="text-xl font-black tracking-tight">현장 사진 관리자</h1>
-                                        <p className="text-xs text-slate-400 font-semibold">상권 현장방문 사진 관리 시스템</p>
+                                        <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
+                                            현장 사진 {viewMode === 'master' ? '관리자' : '내 보관함'}
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase ${viewMode === 'master' ? 'bg-red-500 text-white' : 'bg-blue-500 text-white'}`}>
+                                                {viewMode === 'master' ? 'Master' : 'Personal'}
+                                            </span>
+                                        </h1>
+                                        <p className="text-xs text-slate-400 font-semibold">
+                                            {viewMode === 'master' ? '전체 사진 관리 시스템' : `${getPersonalInfo().name}님의 촬영 기록`}
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                    {viewMode === 'personal' ? (
+                                        <button onClick={() => switchMode('master')}
+                                            className="text-xs px-3 py-2 bg-slate-700/50 hover:bg-slate-600 text-white border border-slate-600 rounded-lg font-bold transition-all flex items-center gap-1.5">
+                                            <Icon name="shield-check" size={14} /> 전체 보기 (관리자)
+                                        </button>
+                                    ) : (
+                                        <button onClick={() => switchMode('personal')}
+                                            className="text-xs px-3 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg font-bold transition-all flex items-center gap-1.5">
+                                            <Icon name="user" size={14} /> 내 사진만 보기
+                                        </button>
+                                    )}
                                     <button onClick={() => setShowMap(m => !m)}
                                         className={`text-xs px-3 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 ${showMap ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50'}`}>
                                         <Icon name="map" size={14} /> {showMap ? '지도 숨기기' : '지도 보기'}
                                     </button>
-                                    <button onClick={() => { setIsAuth(false); sessionStorage.removeItem('fp_admin_pw'); }}
+                                    <button onClick={() => { 
+                                            sessionStorage.removeItem('fp_admin_pw'); 
+                                            if (viewMode === 'master') switchMode('personal');
+                                            else { setIsAuth(false); setShowLogin(true); }
+                                        }}
                                         className="text-xs px-3 py-2 bg-slate-700/50 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-slate-600 rounded-lg font-bold transition-all flex items-center gap-1.5">
-                                        <Icon name="log-out" size={14} /> 로그아웃
+                                        <Icon name="log-out" size={14} /> {viewMode === 'master' ? '마스터 로그아웃' : '종료'}
                                     </button>
                                     <a href="index.html"
                                         className="text-xs px-3 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5">
