@@ -205,15 +205,15 @@
             const svgHtml = useMemo(() => {
                 try {
                     const lucide = window.lucide;
-                    if (!lucide || !lucide.icons) return '';
+                    if (!lucide) return '';
                     
-                    // 다양한 케이스 대응 (kebab-case, PascalCase, camelCase)
+                    // Lucide CDN은 주로 PascalCase를 사용함 (예: image-off -> ImageOff)
                     const pascalName = name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
-                    const camelName = pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
                     
-                    const iconObj = lucide.icons[name] || lucide.icons[pascalName] || lucide.icons[camelName];
+                    // 직접 window.lucide 에서 아이콘 객체 찾기
+                    const iconObj = lucide[pascalName] || (lucide.icons && lucide.icons[pascalName]) || (lucide.icons && lucide.icons[name]);
                     
-                    if (iconObj) {
+                    if (iconObj && typeof iconObj.toSvg === 'function') {
                         return iconObj.toSvg({
                             width: size,
                             height: size,
@@ -221,16 +221,17 @@
                         });
                     }
                 } catch (e) {
-                    console.error('Icon error:', e);
+                    console.error('Icon error for ' + name + ':', e);
                 }
                 return '';
             }, [name, size, className]);
 
             if (!svgHtml) return <span style={{ width: size, height: size, display: 'inline-block' }} className={className}></span>;
 
+            // data-lucide 속성을 제거하여 라이브러리의 자동 스캔(충돌 원인) 방지
             return <span 
-                className="inline-flex items-center justify-center"
-                style={{ verticalAlign: 'middle' }}
+                className={`inline-flex items-center justify-center ${className}`}
+                style={{ verticalAlign: 'middle', width: size, height: size }}
                 dangerouslySetInnerHTML={{ __html: svgHtml }} 
             />;
         };
@@ -463,8 +464,10 @@
             const [viewMode, setViewMode] = useState('personal');
             const [isAuth, setIsAuth] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
-            const [records, setRecords] = useState([]);
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(() => {
+                // 촬영자 정보가 있으면 바로 로딩 시작 예정이므로 true로 초기화
+                return !!localStorage.getItem('photographer_name');
+            });
             const [toast, setToast] = useState(null);
             const [photoModal, setPhotoModal] = useState(null);
             const [showMap, setShowMap] = useState(false);
