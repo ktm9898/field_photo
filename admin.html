@@ -300,7 +300,7 @@
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">
-                                    제목(업체명): {group.bizNumber}
+                                    {group.bizNumber}
                                 </h2>
                                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
                                     총 {groupPhotos.length}장의 사진
@@ -308,8 +308,8 @@
                             </div>
                             <div className="flex items-center gap-2">
                                 <button onClick={() => onDownload(group)}
-                                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
-                                    <Icon name="download" size={14} /> 다운로드
+                                    className="flex items-center justify-center w-9 h-9 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg font-bold hover:bg-emerald-100 transition-colors" title="전체 다운로드">
+                                    <Icon name="download" size={18} />
                                 </button>
                                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                                     <Icon name="x" size={20} className="text-slate-400" />
@@ -326,8 +326,7 @@
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={e => { e.target.src = p.photoUrl; }} />
                                         </div>
-                                        <div className="p-3">
-                                            <p className="text-xs font-bold text-slate-700 truncate">{p.photographer}</p>
+                                        <div className="p-3 text-center">
                                             <p className="text-xs text-slate-400 font-semibold mt-0.5">{formatDateKr(p.datetime)}</p>
                                             {p.memo && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{p.memo}</p>}
                                             {(p.address || (p.lat && p.lng)) && (
@@ -339,8 +338,8 @@
                                                     크게 보기
                                                 </a>
                                                 <button onClick={() => onDownloadSingle(p, idx)}
-                                                    className="flex-1 text-center text-xs py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
-                                                    다운로드
+                                                    className="flex-1 flex items-center justify-center py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors" title="다운로드">
+                                                    <Icon name="download" size={14} />
                                                 </button>
                                             </div>
                                         </div>
@@ -582,7 +581,7 @@
                     }
                 }
                 if (currentGroup) groups.push(currentGroup);
-                return groups;
+                return groups.reverse();
             }, [filteredRecords]);
 
             const stats = useMemo(() => {
@@ -707,8 +706,8 @@
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                         <button onClick={() => setShowMap(m => !m)}
-                                            className={`p-2 rounded-lg font-bold transition-colors ${showMap ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                                            <Icon name="map" size={16} />
+                                            className={`px-3 py-2 rounded-lg font-bold transition-colors flex items-center justify-center ${showMap ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
+                                            <Icon name="map" size={13} />
                                         </button>
                                         <a href="index.html"
                                             className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs flex items-center gap-1">
