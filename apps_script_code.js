@@ -110,7 +110,14 @@ function doPost(e) {
     // 3) 메일 발송
     if (data.action === 'sendEmail') {
       if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      // 이메일 발송은 별도의 비밀번호 체크 (필요시)
       return handleSendEmail(data);
+    }
+    
+    // 5) 파일 데이터 Base64 요청 (다운로드 중계)
+    if (data.action === 'getFileBase64') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleGetFileBase64(data);
     }
 
     // 4) 내 사진 조회 (촬영자 이름 + 이메일로 필터)
@@ -311,4 +318,22 @@ function handleGetMyPhotos(data) {
   }
 
   return jsonResponse({ success: true, data: records, total: records.length });
+}
+
+// ── 파일 데이터를 Base64로 가져오기 (다운로드용 중계) ────────
+function handleGetFileBase64(data) {
+  if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 없습니다.' });
+  try {
+    const file = DriveApp.getFileById(data.fileId);
+    const blob = file.getBlob();
+    const base64 = Utilities.base64Encode(blob.getBytes());
+    return jsonResponse({ 
+      success: true, 
+      base64: base64, 
+      mimeType: blob.getContentType(),
+      fileName: file.getName()
+    });
+  } catch (err) {
+    return jsonResponse({ success: false, error: '파일을 읽는 중 오류 발생: ' + err.toString() });
+  }
 }

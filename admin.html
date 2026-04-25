@@ -283,7 +283,7 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ group, onClose }) => {
+        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle }) => {
             if (!group || !group.photos) return null;
 
             const groupPhotos = group.photos;
@@ -291,18 +291,6 @@
             const openLightbox = (url) => {
                 document.getElementById('lightbox-img').src = toThumbUrl(url);
                 document.getElementById('lightbox').classList.remove('hidden');
-            };
-
-            const downloadAll = () => {
-                groupPhotos.forEach((p, i) => {
-                    setTimeout(() => {
-                        const a = document.createElement('a');
-                        a.href = p.photoUrl.replace('export=view', 'export=download');
-                        a.download = p.fileName || `photo_${i + 1}.jpg`;
-                        a.target = '_blank';
-                        a.click();
-                    }, i * 600);
-                });
             };
 
             return (
@@ -319,7 +307,7 @@
                                 </p>
                             </div>
                             <div className="flex items-center gap-2">
-                                <button onClick={downloadAll}
+                                <button onClick={() => onDownload(group)}
                                     className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
                                     <Icon name="download" size={14} /> 다운로드
                                 </button>
@@ -350,10 +338,10 @@
                                                     className="flex-1 text-center text-xs py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors">
                                                     크게 보기
                                                 </a>
-                                                <a href={p.photoUrl.replace('export=view', 'export=download')} target="_blank" rel="noreferrer"
+                                                <button onClick={() => onDownloadSingle(p, idx)}
                                                     className="flex-1 text-center text-xs py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
                                                     다운로드
-                                                </a>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -621,32 +609,52 @@
                 URL.revokeObjectURL(url);
             };
 
+            const triggerDownload = async (p, index = 0) => {
+                if (!p.fileId) return false;
+                try {
+                    const res = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'getFileBase64',
+                            key: API_SECRET,
+                            fileId: p.fileId
+                        })
+                    });
+                    const result = await res.json();
+                    if (!result.success) throw new Error(result.error);
+
+                    const byteCharacters = atob(result.base64);
+                    const byteNumbers = new Array(byteCharacters.length);
+                    for (let j = 0; j < byteCharacters.length; j++) {
+                        byteNumbers[j] = byteCharacters.charCodeAt(j);
+                    }
+                    const byteArray = new Uint8Array(byteNumbers);
+                    const blob = new Blob([byteArray], { type: result.mimeType || 'image/jpeg' });
+                    
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = p.fileName || `photo_${index + 1}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(blobUrl);
+                    return true;
+                } catch (e) {
+                    console.error('다운로드 실패:', p.fileName, e);
+                    return false;
+                }
+            };
+
             const downloadGroup = async (group) => {
                 if (!group.photos || !group.photos.length) return;
                 setToast({ message: `${group.photos.length}장 다운로드를 시작합니다...`, type: 'info' });
                 let successCount = 0;
+                
                 for (let i = 0; i < group.photos.length; i++) {
-                    const p = group.photos[i];
-                    const downloadUrl = (p.photoUrl || '').replace('export=view', 'export=download');
-                    const fileName = p.fileName || `photo_${i + 1}.jpg`;
-                    try {
-                        // fetch로 파일을 직접 가져와 Blob URL 생성 → 모바일에서도 강제 다운로드
-                        const res = await fetch(downloadUrl);
-                        const blob = await res.blob();
-                        const blobUrl = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = blobUrl;
-                        a.download = fileName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(blobUrl);
-                        successCount++;
-                        // 다음 파일 전 잠시 대기
-                        if (i < group.photos.length - 1) await new Promise(r => setTimeout(r, 500));
-                    } catch (e) {
-                        console.error('다운로드 실패:', fileName, e);
-                    }
+                    const ok = await triggerDownload(group.photos[i], i);
+                    if (ok) successCount++;
+                    if (i < group.photos.length - 1) await new Promise(r => setTimeout(r, 650));
                 }
                 setToast({ message: `${successCount}/${group.photos.length}장 다운로드 완료`, type: 'success' });
             };
@@ -917,9 +925,11 @@
 
                             {/* ── 사진 갤러리 모달 ── */}
                             {photoModal && (
-                                <PhotoGalleryModal
-                                    group={photoModal}
-                                    onClose={() => setPhotoModal(null)}
+                                <PhotoGalleryModal 
+                                    group={photoModal} 
+                                    onClose={() => setPhotoModal(null)} 
+                                    onDownload={downloadGroup}
+                                    onDownloadSingle={triggerDownload}
                                 />
                             )}
                         </div>
