@@ -703,14 +703,7 @@
                                                 className={`text-xs px-3 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 ${showMap ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50'}`}>
                                                 <Icon name="map" size={14} /> {showMap ? '지도 숨기기' : '지도 보기'}
                                             </button>
-                                            <button onClick={() => { 
-                                                    sessionStorage.removeItem('fp_admin_pw'); 
-                                                    if (viewMode === 'master') switchMode('personal');
-                                                    else { setIsAuth(false); setShowLogin(true); }
-                                                }}
-                                                className="text-xs px-3 py-2 bg-slate-700/50 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-slate-600 rounded-lg font-bold transition-all flex items-center gap-1.5">
-                                                <Icon name="log-out" size={14} /> {viewMode === 'master' ? '마스터 로그아웃' : '종료'}
-                                            </button>
+
                                             <a href="index.html"
                                                 className="text-xs px-3 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5">
                                                 <Icon name="camera" size={14} /> 촬영 페이지
