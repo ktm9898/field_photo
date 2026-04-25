@@ -149,9 +149,12 @@ function doPost(e) {
   }
 }
 
-// GET 차단
-function doGet() {
-  return ContentService.createTextOutput('접근이 거부되었습니다.');
+// GET 요청 처리 (POST 리다이렉트 대응 및 안정성 확보)
+function doGet(e) {
+  if (e.parameter && e.parameter.action) {
+    return doPost(e);
+  }
+  return ContentService.createTextOutput('Field Photo API: 접근이 거부되었습니다.');
 }
 
 // ── 머릿글 자동 생성 ─────────────────────────────────────────
