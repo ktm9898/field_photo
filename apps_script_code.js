@@ -312,7 +312,9 @@ function handleGetMyPhotos(data) {
         address:      String(row[5] || ''),
         photoUrl:     photoUrl,
         fileId:       String(row[7] || ''),
-        memo:         String(row[8] || '')
+        memo:         String(row[8] || ''),
+        fileName:     String(row[9] || ''),
+        email:        rowEmail
       });
     }
   }
