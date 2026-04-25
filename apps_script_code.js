@@ -397,8 +397,15 @@ function handleUpdateMemo(data) {
     }
 
     // 메모 업데이트 (정확한 컬럼 위치에 기록)
-    sheet.getRange(targetRow, memoIdx + 1).setValue(data.memo || '');
+    const targetValue = data.memo || '';
+    sheet.getRange(targetRow, memoIdx + 1).setValue(targetValue);
     SpreadsheetApp.flush();
+    
+    // 이중 확인 (검증)
+    const verifyValue = sheet.getRange(targetRow, memoIdx + 1).getValue();
+    if (String(verifyValue) !== String(targetValue)) {
+      throw new Error('데이터 검증 실패: 시트에 기록된 값(' + verifyValue + ')이 요청한 값과 다릅니다.');
+    }
     
     return jsonResponse({ success: true });
     

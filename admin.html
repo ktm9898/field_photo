@@ -351,7 +351,9 @@
                 setIsSaving(true);
                 const ok = await memoUpdater(fileId, memoValue);
                 if (ok) {
-                    setEditMemoId(null);
+                    // 사용자 요청에 따라 저장 후에도 편집창을 닫지 않음 (필요 시 주석 해제)
+                    // setEditMemoId(null);
+                    setToast({ message: '메모가 저장되었습니다.', type: 'success' });
                 }
                 setIsSaving(false);
             };
