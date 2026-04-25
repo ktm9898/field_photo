@@ -482,6 +482,7 @@
             const [dateTo, setDateTo] = useState('');
             const [searchBiz, setSearchBiz] = useState('');
             const [searchPhotographer, setSearchPhotographer] = useState('');
+            const [showMobileFilters, setShowMobileFilters] = useState(false);
             const [appliedFilter, setAppliedFilter] = useState({});
 
             const getPw = () => sessionStorage.getItem('fp_admin_pw') || '';
@@ -784,37 +785,53 @@
 
                             {/* ── 모바일 검색 바 (< 768px) ── */}
                             <div className="md:hidden bg-white border-b border-slate-200 px-3 py-2.5 flex flex-col gap-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
                                     <div className="relative flex-1">
                                         <Icon name="search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                                         <input type="text" placeholder="업체명 검색..." 
                                             className="w-full pl-8 pr-3 h-[38px] text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-400 bg-slate-50 font-semibold"
                                             value={searchBiz} onChange={e => setSearchBiz(e.target.value)} />
                                     </div>
-                                    <div className="flex gap-1.5 shrink-0">
+                                    <div className="flex gap-1 shrink-0">
                                         <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer })}
                                             className="h-[38px] px-3 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
                                             조회
                                         </button>
+                                        <button onClick={() => setShowMobileFilters(!showMobileFilters)}
+                                            className={`h-[38px] px-2.5 flex items-center gap-1 border rounded-lg active:scale-95 transition-all text-xs font-bold ${showMobileFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>
+                                            <Icon name="filter" size={14} />
+                                            상세
+                                        </button>
                                         <button onClick={() => { setDateFrom(''); setDateTo(''); setSearchBiz(''); setSearchPhotographer(''); setAppliedFilter({}); }}
-                                            className="h-[38px] w-10 flex items-center justify-center border border-slate-200 text-slate-400 rounded-lg active:scale-95 transition-transform bg-white">
+                                            className="h-[38px] w-9 flex items-center justify-center border border-slate-200 text-slate-400 rounded-lg active:scale-95 transition-transform bg-white">
                                             <Icon name="rotate-ccw" size={14} />
                                         </button>
                                         <button onClick={() => loadData()}
-                                            className="h-[38px] w-10 flex items-center justify-center bg-blue-600 text-white rounded-lg active:scale-95 transition-transform shadow-sm">
+                                            className="h-[38px] w-9 flex items-center justify-center bg-blue-600 text-white rounded-lg active:scale-95 transition-transform shadow-sm">
                                             <div className={loading ? 'animate-spin' : ''} style={{ display: 'flex' }}>
                                                 <Icon name="refresh-cw" size={14} />
                                             </div>
                                         </button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-100">
-                                    <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                                        className="flex-1 bg-transparent border-none text-[11px] font-bold text-slate-600 outline-none h-8 px-2" />
-                                    <span className="text-slate-300 font-bold">~</span>
-                                    <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                                        className="flex-1 bg-transparent border-none text-[11px] font-bold text-slate-600 outline-none h-8 px-2" />
-                                </div>
+                                
+                                {showMobileFilters && (
+                                    <div className="flex flex-col gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400 ml-1">시작일</label>
+                                                <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                            </div>
+                                            <span className="text-slate-300 font-bold mt-5">~</span>
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400 ml-1">종료일</label>
+                                                <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* ── PC 헤더 (>= 768px) ── */}
