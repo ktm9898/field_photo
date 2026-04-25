@@ -260,14 +260,14 @@ function handleSendEmail(data) {
 
   const htmlBody = `
     <h2>상권 현장 방문 사진</h2>
-    <p><b>업체 번호:</b> ${data.bizNumber || '-'}</p>
+    <p><b>제목(업체명):</b> ${data.bizNumber || '-'}</p>
     <p>총 <b>${attachments.length}</b>장의 사진이 첨부되었습니다.</p>
   `;
 
   try {
     MailApp.sendEmail({
       to: data.email,
-      subject: `[현장사진] 제목(업체명) ${data.bizNumber} 현장점검 결과`,
+      subject: `[현장사진] ${data.bizNumber} 현장점검 결과`,
       htmlBody: htmlBody,
       attachments: attachments
     });
