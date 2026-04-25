@@ -203,12 +203,17 @@
         // ── 아이콘 컴포넌트 ──
         const Icon = ({ name, size = 18, className = '' }) => {
             const svgHtml = useMemo(() => {
-                // Lucide 아이콘 객체에서 직접 SVG 문자열 추출
                 try {
-                    const iconName = name.split('-').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join(''); // kebab-case to camelCase
                     const lucide = window.lucide;
-                    if (lucide && lucide.icons && (lucide.icons[name] || lucide.icons[iconName])) {
-                        const iconObj = lucide.icons[name] || lucide.icons[iconName];
+                    if (!lucide || !lucide.icons) return '';
+                    
+                    // 다양한 케이스 대응 (kebab-case, PascalCase, camelCase)
+                    const pascalName = name.split('-').map(s => s.charAt(0).toUpperCase() + s.slice(1)).join('');
+                    const camelName = pascalName.charAt(0).toLowerCase() + pascalName.slice(1);
+                    
+                    const iconObj = lucide.icons[name] || lucide.icons[pascalName] || lucide.icons[camelName];
+                    
+                    if (iconObj) {
                         return iconObj.toSvg({
                             width: size,
                             height: size,
@@ -223,7 +228,6 @@
 
             if (!svgHtml) return <span style={{ width: size, height: size, display: 'inline-block' }} className={className}></span>;
 
-            // React가 관리하는 span 안에 SVG 문자열을 주입하여 DOM 충돌 방지
             return <span 
                 className="inline-flex items-center justify-center"
                 style={{ verticalAlign: 'middle' }}
@@ -456,11 +460,7 @@
 
         // ── 메인 앱 ──
         const AdminApp = () => {
-            const [viewMode, setViewMode] = useState(() => {
-                const masterPw = sessionStorage.getItem('fp_admin_pw');
-                if (masterPw === ADMIN_PW) return 'master';
-                return 'personal';
-            });
+            const [viewMode, setViewMode] = useState('personal');
             const [isAuth, setIsAuth] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
             const [records, setRecords] = useState([]);
@@ -544,7 +544,9 @@
             };
 
             const switchMode = (mode) => {
-                if (mode === 'master' && getPw() !== ADMIN_PW) {
+                if (mode === 'master') {
+                    // 마스터 모드 진입 시 항상 비밀번호를 새로 묻도록 함
+                    sessionStorage.removeItem('fp_admin_pw');
                     setShowLogin(true);
                 } else {
                     loadData(mode);
