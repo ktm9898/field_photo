@@ -693,7 +693,60 @@
                         </div>
                     ) : (
                         <div className="min-h-screen pb-12">
-                            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+                            {/* ── 모바일 헤더 (< 768px) ── */}
+                            <div className="md:hidden bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
+                                <div className="px-4 pt-4 pb-2">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                                                <Icon name="camera" size={16} className="text-white" />
+                                            </div>
+                                            <div>
+                                                <h1 className="text-sm font-black tracking-tight flex items-center gap-1.5">
+                                                    현장 사진 {viewMode === 'master' ? '관리자' : '내 보관함'}
+                                                    <span className={`text-[9px] px-1 py-0.5 rounded uppercase ${viewMode === 'master' ? 'bg-red-500' : 'bg-blue-500'}`}>
+                                                        {viewMode === 'master' ? 'Master' : 'My'}
+                                                    </span>
+                                                </h1>
+                                                <p className="text-[10px] text-slate-400 font-semibold">
+                                                    {viewMode === 'master' ? '전체 사진 관리' : `${getPersonalInfo().name}님의 촬영 기록`}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <a href="index.html"
+                                            className="text-xs px-2.5 py-1.5 bg-blue-600 text-white rounded-lg font-bold flex items-center gap-1">
+                                            <Icon name="camera" size={13} /> 촬영
+                                        </a>
+                                    </div>
+                                </div>
+                                {/* 모바일 탭 바 */}
+                                <div className="flex border-t border-slate-700/50 mt-2">
+                                    <button onClick={() => switchMode('personal')}
+                                        className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold transition-colors ${
+                                            viewMode === 'personal' ? 'text-blue-400 border-b-2 border-blue-400' : 'text-slate-400 border-b-2 border-transparent'
+                                        }`}>
+                                        <Icon name="user" size={16} />
+                                        내 사진
+                                    </button>
+                                    <button onClick={() => switchMode('master')}
+                                        className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold transition-colors ${
+                                            viewMode === 'master' ? 'text-red-400 border-b-2 border-red-400' : 'text-slate-400 border-b-2 border-transparent'
+                                        }`}>
+                                        <Icon name="shield-check" size={16} />
+                                        전체 보기
+                                    </button>
+                                    <button onClick={() => setShowMap(m => !m)}
+                                        className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold transition-colors ${
+                                            showMap ? 'text-emerald-400 border-b-2 border-emerald-400' : 'text-slate-400 border-b-2 border-transparent'
+                                        }`}>
+                                        <Icon name="map" size={16} />
+                                        지도
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* ── PC 헤더 (>= 768px) ── */}
+                            <div className="hidden md:block bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-2xl">
                                 <div className="max-w-7xl mx-auto px-6 py-5">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
@@ -728,7 +781,6 @@
                                                 className={`text-xs px-3 py-2 rounded-lg font-bold transition-all flex items-center gap-1.5 ${showMap ? 'bg-blue-600 text-white' : 'bg-slate-700/50 text-slate-300 border border-slate-600 hover:bg-slate-600/50'}`}>
                                                 <Icon name="map" size={14} /> {showMap ? '지도 숨기기' : '지도 보기'}
                                             </button>
-
                                             <a href="index.html"
                                                 className="text-xs px-3 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5">
                                                 <Icon name="camera" size={14} /> 촬영 페이지
@@ -738,7 +790,7 @@
                                 </div>
                             </div>
 
-                            <div className="max-w-7xl mx-auto px-6 mt-6 space-y-5">
+                            <div className="max-w-7xl mx-auto px-3 md:px-6 mt-4 md:mt-6 space-y-4 md:space-y-5">
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                     {[
                                         { label: '총 사진', value: stats.total, unit: '장', icon: 'image', color: 'bg-blue-100 text-blue-600' },
@@ -840,41 +892,40 @@
                                                 </div>
                                             </div>
                                         ) : groupedRecords.map((r, idx) => (
-                                            <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-4 py-3 hover:bg-blue-50/30 transition-colors gap-3">
+                                            <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-2 py-2.5 active:bg-blue-50/50 transition-colors gap-2">
                                                 {/* 연번 */}
-                                                <span className="text-xs font-black text-slate-400 w-6 shrink-0 text-center">{idx + 1}</span>
+                                                <span className="text-xs font-black text-slate-400 w-5 shrink-0 text-center">{idx + 1}</span>
+
+                                                {/* 업체명 */}
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-black text-slate-800 text-sm truncate">{r.bizNumber || '-'}</p>
+                                                </div>
 
                                                 {/* 썸네일 */}
                                                 <div className="shrink-0">
                                                     {r.photoUrl ? (
                                                         <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
-                                                            className="w-11 h-11 object-cover rounded-lg border border-slate-200 cursor-pointer"
+                                                            className="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer"
                                                             onClick={() => { document.getElementById('lightbox-img').src = toThumbUrl(r.photoUrl); document.getElementById('lightbox').classList.remove('hidden'); }} />
                                                     ) : (
-                                                        <div className="w-11 h-11 bg-slate-100 rounded-lg flex items-center justify-center">
-                                                            <Icon name="image-off" size={18} className="text-slate-300" />
+                                                        <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
+                                                            <Icon name="image-off" size={16} className="text-slate-300" />
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                {/* 업체명 */}
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-black text-slate-800 text-sm truncate">{r.bizNumber || '-'}</p>
-                                                    <p className="text-xs text-slate-400 font-semibold mt-0.5">{r.photos.length}장</p>
-                                                </div>
-
                                                 {/* 작업 */}
-                                                <div className="flex items-center gap-1.5 shrink-0">
+                                                <div className="flex items-center gap-1 shrink-0">
                                                     <button onClick={() => setPhotoModal(r)}
-                                                        className="p-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors" title="갤러리">
+                                                        className="p-2 bg-slate-50 text-slate-600 border border-slate-200 rounded-lg active:bg-slate-100 transition-colors" title="갤러리">
                                                         <Icon name="images" size={15} />
                                                     </button>
                                                     <button onClick={() => downloadGroup(r)}
-                                                        className="p-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors" title="다운로드">
+                                                        className="p-2 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded-lg active:bg-emerald-100 transition-colors" title="다운로드">
                                                         <Icon name="download" size={15} />
                                                     </button>
                                                     <button onClick={() => handleSendEmailRow(r)}
-                                                        className="p-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors" title="메일 발송">
+                                                        className="p-2 bg-blue-50 text-blue-600 border border-blue-200 rounded-lg active:bg-blue-100 transition-colors" title="메일 발송">
                                                         <Icon name="mail" size={15} />
                                                     </button>
                                                 </div>
