@@ -123,6 +123,28 @@
             height: 380px;
             border-radius: 12px;
         }
+        /* 지도 마커 팝업 스타일 */
+        .marker-popup {
+            background: white;
+            padding: 14px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            min-width: 180px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+        .marker-popup .biz-name {
+            font-size: 14px;
+            font-weight: 900;
+            color: #1e293b;
+            margin-bottom: 4px;
+            letter-spacing: -0.025em;
+        }
+        .marker-popup .meta-info {
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
     </style>
 </head>
 
@@ -388,8 +410,7 @@
                 // 정보창 생성 (단일 인스턴스)
                 infoWindowRef.current = new naver.maps.InfoWindow({
                     borderWidth: 0,
-                    backgroundColor: 'white',
-                    borderColor: 'transparent',
+                    backgroundColor: 'transparent',
                     disableAnchor: true,
                     pixelOffset: new naver.maps.Point(0, -8)
                 });
@@ -441,9 +462,9 @@
 
                     const bizList = uniqueBizNames.join(', ');
                     const countText = count > 1 ? `업체 ${count}곳 · ` : '';
-                    const content = `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
-                        <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${bizList}</div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;">${countText}사진 ${photos.length}장</div>
+                    const content = `<div class="marker-popup">
+                        <div class="biz-name">${bizList}</div>
+                        <div class="meta-info">${countText}사진 ${photos.length}장</div>
                     </div>`;
 
                     naver.maps.Event.addListener(marker, 'click', () => {
