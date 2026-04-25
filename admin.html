@@ -328,20 +328,20 @@
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={e => { e.target.src = p.photoUrl; }} />
                                         </div>
-                                        <div className="p-3 text-center md:text-left">
+                                        <div className="p-3 text-center">
                                             <p className="hidden md:block text-xs font-bold text-slate-700 truncate mb-1">{p.photographer}</p>
                                             <p className="text-xs text-slate-400 font-semibold">{formatDateKr(p.datetime)}</p>
                                             {(p.address || (p.lat && p.lng)) && (
                                                 <p className="text-xs text-slate-400 mt-1">{p.address || (Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5))}</p>
                                             )}
-                                            {p.memo && <p className="text-xs text-slate-500 mt-1 line-clamp-2 italic">{p.memo}</p>}
-                                            <div className="flex gap-1 mt-3">
+                                            {p.memo && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{p.memo}</p>}
+                                            <div className="flex gap-1 mt-2">
                                                 <a href={p.photoUrl} target="_blank" rel="noreferrer"
-                                                    className="flex-1 text-center text-xs py-2 bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors">
-                                                    확대
+                                                    className="flex-1 text-center text-xs py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors">
+                                                    크게 보기
                                                 </a>
                                                 <button onClick={() => onDownloadSingle(p, idx)}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors" title="다운로드">
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors" title="다운로드">
                                                     <Icon name="download" size={14} />
                                                     <span className="hidden md:inline text-xs">다운로드</span>
                                                 </button>
