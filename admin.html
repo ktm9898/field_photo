@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>현장 사진 관리자 - 상권 현장방문 시스템</title>
-    <meta name="description" content="상권 현장방문 사진 관리자 페이지 - 날짜/촬영자/업체번호별 검색 및 다운로드">
+    <meta name="description" content="상권 현장방문 사진 관리자 페이지 - 날짜/촬영자/제목(업체명)별 검색 및 다운로드">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -293,7 +293,7 @@
                         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
                             <div>
                                 <h2 className="text-lg font-black text-slate-800">
-                                    업체번호: {group.bizNumber}
+                                    제목(업체명): {group.bizNumber}
                                 </h2>
                                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
                                     총 {groupPhotos.length}장의 사진
@@ -540,7 +540,7 @@
             }, [records]);
 
             const downloadCSV = () => {
-                const headers = ['촬영일시', '촬영자', '업체번호', '위도', '경도', '주소', '사진URL', '메모', '파일명'];
+                const headers = ['촬영일시', '촬영자', '제목(업체명)', '위도', '경도', '주소', '사진URL', '메모', '파일명'];
                 const rows = [headers.join(',')];
                 filteredRecords.forEach(r => {
                     rows.push([r.datetime, r.photographer, r.bizNumber, r.lat, r.lng, r.address, r.photoUrl, r.memo, r.fileName]
@@ -670,7 +670,7 @@
                                         value={dateTo} onChange={e => setDateTo(e.target.value)} />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-xs font-bold text-slate-500">업체번호</label>
+                                    <label className="text-xs font-bold text-slate-500">제목(업체명)</label>
                                     <input type="text" placeholder="검색..." className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none w-32"
                                         value={searchBiz} onChange={e => setSearchBiz(e.target.value)} />
                                 </div>
@@ -715,7 +715,7 @@
                                     <thead>
                                         <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200">
                                             <th className="pl-8 pr-4 py-3 text-center w-14">#</th>
-                                            <th className="px-6 py-3 text-center whitespace-nowrap">업체번호</th>
+                                            <th className="px-6 py-3 text-center whitespace-nowrap" style={{ width: '220px' }}>제목(업체명)</th>
                                             <th className="px-6 py-3 text-center whitespace-nowrap">썸네일</th>
                                             <th className="px-6 py-3 text-center whitespace-nowrap" style={{width:'150px'}}>촬영일시</th>
                                             <th className="px-6 py-3 text-center whitespace-nowrap">촬영자</th>

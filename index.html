@@ -717,7 +717,7 @@
 
         <!-- 입력 필드 -->
         <div class="field-group">
-            <label class="field-label">업체번호<span class="required-dot">*</span></label>
+            <label class="field-label">제목(업체명)<span class="required-dot">*</span></label>
             <input type="text" id="input-biz" class="field-input" placeholder="예: 2026-001" maxlength="30">
         </div>
 
@@ -1085,7 +1085,7 @@
             const email = localStorage.getItem('photographer_email') || '';
             const memo = document.getElementById('input-memo').value.trim();
 
-            if (!bizNumber) { showToast('업체번호를 입력해주세요.', 'error'); return; }
+            if (!bizNumber) { showToast('제목(업체명)을 입력해주세요.', 'error'); return; }
             if (!photographer) { showToast('촬영자 이름을 입력해주세요.', 'error'); return; }
             if (capturedPhotos.length === 0) { showToast('사진이 없습니다.', 'error'); return; }
 

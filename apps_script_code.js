@@ -260,7 +260,7 @@ function handleSendEmail(data) {
   try {
     MailApp.sendEmail({
       to: data.email,
-      subject: `[현장사진] 업체번호 ${data.bizNumber} 현장점검 결과`,
+      subject: `[현장사진] 제목(업체명) ${data.bizNumber} 현장점검 결과`,
       htmlBody: htmlBody,
       attachments: attachments
     });
