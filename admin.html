@@ -289,7 +289,7 @@
             const groupPhotos = group.photos;
 
             const openLightbox = (url) => {
-                document.getElementById('lightbox-img').src = toThumbUrl(url);
+                document.getElementById('lightbox-img').src = url; // toThumbUrl(url);
                 document.getElementById('lightbox').classList.remove('hidden');
             };
 
@@ -297,21 +297,19 @@
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
                     <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-                            <div>
-                                <h2 className="text-lg font-black text-slate-800">
-                                    <span className="hidden md:inline text-slate-400 mr-1 text-base font-bold">제목(업체명):</span>
-                                    {group.bizNumber}
+                        <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100">
+                            <div className="min-w-0 pr-4">
+                                <h2 className="text-lg font-black text-slate-800 truncate">
+                                    <span className="hidden md:inline">제목(업체명): </span>{group.bizNumber}
                                 </h2>
                                 <p className="text-xs text-slate-400 font-semibold mt-0.5">
                                     총 {groupPhotos.length}장의 사진
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                                 <button onClick={() => onDownload(group)}
-                                    className="flex items-center justify-center md:justify-start gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors" title="전체 다운로드">
-                                    <Icon name="download" size={16} />
-                                    <span className="hidden md:inline">다운로드</span>
+                                    className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold hover:bg-emerald-100 transition-colors">
+                                    <Icon name="download" size={14} /> <span className="hidden md:inline">전체 다운로드</span>
                                 </button>
                                 <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
                                     <Icon name="x" size={20} className="text-slate-400" />
@@ -319,31 +317,30 @@
                             </div>
                         </div>
 
-                        <div className="overflow-y-auto p-6 bg-slate-50/50 custom-scroll flex-1">
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div className="overflow-y-auto p-4 md:p-6 custom-scroll flex-1">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                 {groupPhotos.map((p, idx) => (
-                                    <div key={idx} className="group relative bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:border-blue-300 transition-all hover:shadow-md">
+                                    <div key={idx} className="group relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100 hover:border-blue-200 transition-all hover:shadow-md">
                                         <div className="aspect-square overflow-hidden cursor-pointer" onClick={() => openLightbox(p.photoUrl)}>
                                             <img src={toThumbUrl(p.photoUrl)} alt={`사진 ${idx + 1}`}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={e => { e.target.src = p.photoUrl; }} />
                                         </div>
                                         <div className="p-3">
-                                            <p className="hidden md:block text-xs font-bold text-slate-700 truncate mb-1">{p.photographer}</p>
-                                            <p className="text-xs text-slate-400 font-semibold">{formatDateKr(p.datetime)}</p>
-                                            {(p.address || (p.lat && p.lng)) && (
-                                                <p className="text-xs text-slate-400 mt-1">{p.address || (Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5))}</p>
-                                            )}
+                                            <p className="text-xs font-bold text-slate-700 truncate hidden md:block">{p.photographer}</p>
+                                            <p className="text-xs text-slate-400 font-semibold mt-0.5">{formatDateKr(p.datetime)}</p>
                                             {p.memo && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{p.memo}</p>}
+                                            {(p.address || (p.lat && p.lng)) && (
+                                                <p className="text-xs text-slate-400 mt-1 truncate">{p.address || (Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5))}</p>
+                                            )}
                                             <div className="flex gap-1 mt-2">
                                                 <a href={p.photoUrl} target="_blank" rel="noreferrer"
                                                     className="flex-1 text-center text-xs py-1.5 bg-blue-50 text-blue-600 rounded-lg font-bold hover:bg-blue-100 transition-colors">
-                                                    크게 보기
+                                                    확대
                                                 </a>
                                                 <button onClick={() => onDownloadSingle(p, idx)}
-                                                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg font-bold hover:bg-emerald-100 transition-colors" title="다운로드">
+                                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
                                                     <Icon name="download" size={14} />
-                                                    <span className="hidden md:inline text-xs">다운로드</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -562,6 +559,10 @@
                     if (appliedFilter.searchBiz && !(r.bizNumber || '').includes(appliedFilter.searchBiz)) return false;
                     if (appliedFilter.searchPhotographer && !(r.photographer || '').includes(appliedFilter.searchPhotographer)) return false;
                     return true;
+                }).sort((a, b) => {
+                    const timeA = new Date(a.datetime).getTime() || 0;
+                    const timeB = new Date(b.datetime).getTime() || 0;
+                    return timeB - timeA; // 최신순 정렬
                 });
             }, [records, appliedFilter]);
 
@@ -585,7 +586,7 @@
                     }
                 }
                 if (currentGroup) groups.push(currentGroup);
-                return groups.reverse();
+                return groups;
             }, [filteredRecords]);
 
             const stats = useMemo(() => {
@@ -711,10 +712,10 @@
                                     <div className="flex items-center gap-1.5">
                                         <button onClick={() => setShowMap(m => !m)}
                                             className={`px-3 py-2 rounded-lg font-bold transition-colors flex items-center justify-center ${showMap ? 'bg-emerald-500 text-white' : 'bg-slate-700 text-slate-300'}`}>
-                                            <Icon name="map" size={13} />
+                                            <Icon name="map" size={16} />
                                         </button>
                                         <a href="index.html"
-                                            className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs flex items-center gap-1">
+                                            className="px-3 py-2 bg-blue-600 text-white rounded-lg font-bold text-xs flex items-center gap-1 leading-none h-[34px] flex items-center">
                                             <Icon name="camera" size={13} /> 촬영
                                         </a>
                                     </div>
