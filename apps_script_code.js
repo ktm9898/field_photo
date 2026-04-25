@@ -357,12 +357,14 @@ function handleUpdateMemo(data) {
   if (lastRow < 2) return jsonResponse({ success: false, error: '데이터가 없습니다.' });
 
   // 파일 ID로 해당 행 찾기 (H열 = 8번 인덱스)
+  // 데이터가 많을 수 있으므로 전체 범위를 가져오기보다 필요한 열만 가져옵니다.
   const range = sheet.getRange(2, 8, lastRow - 1, 1);
   const values = range.getValues();
   let targetRow = -1;
 
   for (let i = 0; i < values.length; i++) {
-    if (String(values[i][0]) === String(data.fileId)) {
+    // values[i][0]은 8번 열(사진파일ID)의 값
+    if (String(values[i][0]).trim() === String(data.fileId).trim()) {
       targetRow = i + 2;
       break;
     }
