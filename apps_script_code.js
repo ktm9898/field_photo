@@ -348,34 +348,47 @@ function handleGetFileBase64(data) {
 
 // ── 메모 업데이트 ───────────────────────────────────────────
 function handleUpdateMemo(data) {
-  if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 없습니다.' });
-  
-  const sheet = getSheet();
-  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+  const lock = LockService.getScriptLock();
+  try {
+    // 최대 10초간 잠금 대기 (다른 작업과 충돌 방지)
+    lock.waitLock(10000);
+    
+    if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 없습니다.' });
+    
+    const sheet = getSheet();
+    if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
 
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return jsonResponse({ success: false, error: '데이터가 없습니다.' });
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return jsonResponse({ success: false, error: '데이터가 없습니다.' });
 
-  // 파일 ID로 해당 행 찾기 (H열 = 8번 인덱스)
-  // 데이터가 많을 수 있으므로 전체 범위를 가져오기보다 필요한 열만 가져옵니다.
-  const range = sheet.getRange(2, 8, lastRow - 1, 1);
-  const values = range.getValues();
-  let targetRow = -1;
+    // 파일 ID로 해당 행 찾기 (H열 = 8번 인덱스)
+    const range = sheet.getRange(2, 8, lastRow - 1, 1);
+    const values = range.getValues();
+    let targetRow = -1;
 
-  for (let i = 0; i < values.length; i++) {
-    // values[i][0]은 8번 열(사진파일ID)의 값
-    if (String(values[i][0]).trim() === String(data.fileId).trim()) {
-      targetRow = i + 2;
-      break;
+    const searchId = String(data.fileId).trim();
+    for (let i = 0; i < values.length; i++) {
+      if (String(values[i][0]).trim() === searchId) {
+        targetRow = i + 2;
+        break;
+      }
     }
-  }
 
-  if (targetRow === -1) {
-    return jsonResponse({ success: false, error: '해당 파일을 시트에서 찾을 수 없습니다.' });
-  }
+    if (targetRow === -1) {
+      return jsonResponse({ success: false, error: '해당 파일을 시트에서 찾을 수 없습니다.' });
+    }
 
-  // 메모 업데이트 (I열 = 9번 인덱스)
-  sheet.getRange(targetRow, 9).setValue(data.memo || '');
-  
-  return jsonResponse({ success: true });
+    // 메모 업데이트 (I열 = 9번 인덱스)
+    sheet.getRange(targetRow, 9).setValue(data.memo || '');
+    
+    // 변경사항 즉시 반영
+    SpreadsheetApp.flush();
+    
+    return jsonResponse({ success: true });
+    
+  } catch (err) {
+    return jsonResponse({ success: false, error: '메모 업데이트 중 오류: ' + err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
 }
