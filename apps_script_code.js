@@ -92,7 +92,17 @@ function formatDateTime(d) {
 // ── doPost ─────────────────────────────────────────────────
 function doPost(e) {
   try {
-    const data = JSON.parse(e.postData.contents);
+    // 1) 데이터 추출 (JSON 또는 Parameter)
+    let data;
+    if (e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch(ex) {
+        data = e.parameter;
+      }
+    } else {
+      data = e.parameter;
+    }
 
     // 1) 관리자 조회 요청
     if (data.action === 'getAll') {
