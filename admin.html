@@ -440,9 +440,10 @@
                     });
 
                     const bizList = uniqueBizNames.join(', ');
+                    const countText = count > 1 ? `업체 ${count}곳 · ` : '';
                     const content = `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
                         <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${bizList}</div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;">업체 ${count}곳 · 사진 ${photos.length}장</div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;">${countText}사진 ${photos.length}장</div>
                     </div>`;
 
                     naver.maps.Event.addListener(marker, 'click', () => {
