@@ -1265,8 +1265,11 @@
                 });
                 const result = await resp.json();
                 if (result.success && result.data && result.data.length > 0) {
+                    const uniqueLocs = new Set();
                     result.data.forEach(function (rec) {
                         if (rec.lat && rec.lng) {
+                            const locKey = rec.lat.toFixed(5) + ',' + rec.lng.toFixed(5);
+                            uniqueLocs.add(locKey);
                             addOrUpdateMarker(rec.lat, rec.lng, {
                                 bizNumber: rec.bizNumber,
                                 photographer: rec.photographer,
@@ -1276,7 +1279,7 @@
                             });
                         }
                     });
-                    showToast('기존 촬영 마커 ' + result.total + '건 표시', 'info');
+                    showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
                 }
             } catch (err) {
                 console.warn('마커 복원 실패:', err);
