@@ -593,6 +593,9 @@
                 });
             }, [records, appliedFilter]);
 
+            const PAGE_SIZE = 20;
+            const [currentPage, setCurrentPage] = useState(1);
+
             const groupedRecords = useMemo(() => {
                 const groups = [];
                 let currentGroup = null;
@@ -601,7 +604,6 @@
                     if (!currentGroup) {
                         currentGroup = { ...r, photos: [r] };
                     } else {
-                        // 인접한 행이면서 업체번호, 촬영자, 메모가 동일한 경우 같은 그룹으로 묶음
                         if (currentGroup.bizNumber === r.bizNumber &&
                             currentGroup.photographer === r.photographer &&
                             currentGroup.memo === r.memo) {
@@ -615,6 +617,16 @@
                 if (currentGroup) groups.push(currentGroup);
                 return groups;
             }, [filteredRecords]);
+
+            useEffect(() => {
+                setCurrentPage(1);
+            }, [appliedFilter]);
+
+            const totalPages = Math.ceil(groupedRecords.length / PAGE_SIZE);
+            const paginatedGroups = useMemo(() => {
+                const start = (currentPage - 1) * PAGE_SIZE;
+                return groupedRecords.slice(start, start + PAGE_SIZE);
+            }, [groupedRecords, currentPage]);
 
             const stats = useMemo(() => {
                 const now = new Date();
@@ -953,10 +965,10 @@
                                                     </p>
                                                 </div>
                                             </div>
-                                        ) : groupedRecords.map((r, idx) => (
+                                        ) : paginatedGroups.map((r, idx) => (
                                             <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-2 py-2.5 active:bg-blue-50/50 transition-colors gap-2">
                                                 {/* 연번 */}
-                                                <span className="text-xs font-black text-slate-400 w-5 shrink-0 text-center">{idx + 1}</span>
+                                                <span className="text-xs font-black text-slate-400 w-5 shrink-0 text-center">{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
 
                                                 {/* 업체명 */}
                                                 <div className="flex-1 min-w-0">
@@ -1024,9 +1036,9 @@
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                        ) : groupedRecords.map((r, idx) => (
+                                                        ) : paginatedGroups.map((r, idx) => (
                                                     <tr key={idx} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
-                                                        <td className="pl-8 pr-2 py-3 text-center text-xs font-bold text-slate-400">{idx + 1}</td>
+                                                        <td className="pl-8 pr-2 py-3 text-center text-xs font-bold text-slate-400">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
                                                         <td className="px-3 py-3 text-center">
                                                             <div className="font-black text-slate-700 text-sm">
                                                                 {r.bizNumber || '-'}
@@ -1091,6 +1103,39 @@
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* ── 페이지네이션 ── */}
+                                    {totalPages > 1 && (
+                                        <div className="px-5 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-center gap-1.5">
+                                            <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                                                className={`p-2 rounded-lg border transition-all ${currentPage === 1 ? 'text-slate-300 border-slate-200 cursor-not-allowed' : 'text-slate-600 border-slate-200 hover:bg-white'}`}>
+                                                <Icon name="chevron-left" size={16} />
+                                            </button>
+                                            
+                                            <div className="flex items-center gap-1">
+                                                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                                    .filter(p => {
+                                                        // 현재 페이지 주변 5개만 표시
+                                                        return p === 1 || p === totalPages || (p >= currentPage - 2 && p <= currentPage + 2);
+                                                    })
+                                                    .map((p, i, arr) => (
+                                                        <React.Fragment key={p}>
+                                                            {i > 0 && arr[i-1] !== p - 1 && <span className="text-slate-300 px-1">...</span>}
+                                                            <button onClick={() => setCurrentPage(p)}
+                                                                className={`w-9 h-9 rounded-lg font-bold text-xs transition-all ${currentPage === p ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-white border border-transparent hover:border-slate-200'}`}>
+                                                                {p}
+                                                            </button>
+                                                        </React.Fragment>
+                                                    ))
+                                                }
+                                            </div>
+
+                                            <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                                                className={`p-2 rounded-lg border transition-all ${currentPage === totalPages ? 'text-slate-300 border-slate-200 cursor-not-allowed' : 'text-slate-600 border-slate-200 hover:bg-white'}`}>
+                                                <Icon name="chevron-right" size={16} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
