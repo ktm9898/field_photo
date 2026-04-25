@@ -464,6 +464,7 @@
             const [viewMode, setViewMode] = useState('personal');
             const [isAuth, setIsAuth] = useState(false);
             const [showLogin, setShowLogin] = useState(false);
+            const [records, setRecords] = useState([]);
             const [loading, setLoading] = useState(() => {
                 // 촬영자 정보가 있으면 바로 로딩 시작 예정이므로 true로 초기화
                 return !!localStorage.getItem('photographer_name');
