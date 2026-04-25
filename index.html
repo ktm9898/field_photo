@@ -940,7 +940,7 @@
                     pendingLatLng = state.pendingLatLng || null;
                     pendingBizNumber = state.pendingBizNumber || '';
                     updateCaptureUI();
-                    showToast('촬영 중이던 사진 ' + capturedPhotos.length + '장 복원됨', 'info');
+                    showToast('촬영 중이던 사진 ' + capturedPhotos.length + '장 표시', 'info');
                 }
             } catch (e) {
                 console.warn('촬영 상태 복원 실패:', e);
@@ -1276,7 +1276,7 @@
                             });
                         }
                     });
-                    showToast('이전 촬영 마커 ' + result.total + '건 복원', 'info');
+                    showToast('기존 촬영 마커 ' + result.total + '건 표시', 'info');
                 }
             } catch (err) {
                 console.warn('마커 복원 실패:', err);
@@ -1521,8 +1521,8 @@
         function showToast(message, type) {
             type = type || 'info';
             const toast = document.getElementById('toast');
-            const icons = { success: '✓', error: '✕', info: 'i' };
-            document.getElementById('toast-icon').textContent = icons[type] || 'i';
+            const icons = { success: '✓', error: '✕', info: '' };
+            document.getElementById('toast-icon').textContent = icons[type] || '';
             document.getElementById('toast-msg').textContent = message;
             toast.className = 'show ' + type;
             if (toastTimer) clearTimeout(toastTimer);
