@@ -202,23 +202,33 @@
 
         // ── 아이콘 컴포넌트 ──
         const Icon = ({ name, size = 18, className = '' }) => {
-            const iconRef = useRef(null);
-            useEffect(() => {
-                if (window.lucide && iconRef.current) {
-                    // 전체 문서를 스캔하는 대신 해당 요소만 타겟팅하여 변환
-                    try {
-                        window.lucide.createIcons({
-                            nameAttr: 'data-lucide',
-                            icons: window.lucide.icons 
+            const svgHtml = useMemo(() => {
+                // Lucide 아이콘 객체에서 직접 SVG 문자열 추출
+                try {
+                    const iconName = name.split('-').map((s, i) => i === 0 ? s : s.charAt(0).toUpperCase() + s.slice(1)).join(''); // kebab-case to camelCase
+                    const lucide = window.lucide;
+                    if (lucide && lucide.icons && (lucide.icons[name] || lucide.icons[iconName])) {
+                        const iconObj = lucide.icons[name] || lucide.icons[iconName];
+                        return iconObj.toSvg({
+                            width: size,
+                            height: size,
+                            class: className
                         });
-                    } catch (e) {
-                        console.warn('Lucide icon error:', e);
                     }
+                } catch (e) {
+                    console.error('Icon error:', e);
                 }
-            }, [name]);
-            
-            // key를 name으로 주어 아이콘이 바뀔 때마다 React가 아예 새로 그리도록 유도 (충돌 방지)
-            return <i key={name} ref={iconRef} data-lucide={name} style={{ width: size, height: size, display: 'inline-flex' }} className={className}></i>;
+                return '';
+            }, [name, size, className]);
+
+            if (!svgHtml) return <span style={{ width: size, height: size, display: 'inline-block' }} className={className}></span>;
+
+            // React가 관리하는 span 안에 SVG 문자열을 주입하여 DOM 충돌 방지
+            return <span 
+                className="inline-flex items-center justify-center"
+                style={{ verticalAlign: 'middle' }}
+                dangerouslySetInnerHTML={{ __html: svgHtml }} 
+            />;
         };
 
         // ── 토스트 ──
@@ -562,8 +572,8 @@
                     const dateKey = toDateKey(r.datetime);
                     if (appliedFilter.dateFrom && dateKey < appliedFilter.dateFrom) return false;
                     if (appliedFilter.dateTo && dateKey > appliedFilter.dateTo) return false;
-                    if (appliedFilter.searchBiz && !r.bizNumber.includes(appliedFilter.searchBiz)) return false;
-                    if (appliedFilter.searchPhotographer && !r.photographer.includes(appliedFilter.searchPhotographer)) return false;
+                    if (appliedFilter.searchBiz && !(r.bizNumber || '').includes(appliedFilter.searchBiz)) return false;
+                    if (appliedFilter.searchPhotographer && !(r.photographer || '').includes(appliedFilter.searchPhotographer)) return false;
                     return true;
                 });
             }, [records, appliedFilter]);
