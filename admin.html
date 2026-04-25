@@ -643,7 +643,7 @@
             // 로딩이 끝나고 그룹화된 결과가 나오면 메시지 표시
             useEffect(() => {
                 if (!loading && records.length > 0) {
-                    setToast({ message: `현장사진 목록 ${groupedRecords.length}건을 불러왔습니다.`, type: 'success' });
+                    setToast({ message: `현장사진 ${groupedRecords.length}건을 불러왔습니다.`, type: 'success' });
                 }
             }, [loading]);
 
