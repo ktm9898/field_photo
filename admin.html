@@ -545,7 +545,6 @@
                         setIsAuth(true);
                         setShowLogin(false);
                         setViewMode(targetMode);
-                        setToast({ message: `${targetMode === 'master' ? '전체' : '내'} 사진 ${data.total || 0}건을 불러왔습니다.`, type: 'success' });
                         return true;
                     } else {
                         setToast({ message: data.error || '오류 발생', type: 'error' });
@@ -617,6 +616,7 @@
 
             const PAGE_SIZE = 20;
             const [currentPage, setCurrentPage] = useState(1);
+            const isInitialLoadDone = useRef(false);
 
             const groupedRecords = useMemo(() => {
                 const groups = [];
@@ -639,6 +639,13 @@
                 if (currentGroup) groups.push(currentGroup);
                 return groups;
             }, [filteredRecords]);
+
+            // 로딩이 끝나고 그룹화된 결과가 나오면 메시지 표시
+            useEffect(() => {
+                if (!loading && records.length > 0) {
+                    setToast({ message: `현장사진 목록 ${groupedRecords.length}건을 불러왔습니다.`, type: 'success' });
+                }
+            }, [loading]);
 
             useEffect(() => {
                 setCurrentPage(1);
