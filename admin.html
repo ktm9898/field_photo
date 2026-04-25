@@ -374,6 +374,7 @@
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
             const markersRef = useRef([]);
+            const infoWindowRef = useRef(null);
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
@@ -383,12 +384,27 @@
                     logoControl: false,
                     mapDataControl: false
                 });
+
+                // 정보창 생성 (단일 인스턴스)
+                infoWindowRef.current = new naver.maps.InfoWindow({
+                    borderWidth: 0,
+                    backgroundColor: 'white',
+                    borderColor: 'transparent',
+                    disableAnchor: true,
+                    pixelOffset: new naver.maps.Point(0, -8)
+                });
+
+                // 지도 클릭 시 정보창 닫기
+                naver.maps.Event.addListener(mapInstanceRef.current, 'click', () => {
+                    if (infoWindowRef.current) infoWindowRef.current.close();
+                });
             }, []);
 
             useEffect(() => {
                 if (!mapInstanceRef.current) return;
                 markersRef.current.forEach(m => m.setMap(null));
                 markersRef.current = [];
+                if (infoWindowRef.current) infoWindowRef.current.close();
 
                 const validRecords = records.filter(r => r.lat && r.lng);
                 const groups = {};
@@ -424,20 +440,14 @@
                     });
 
                     const bizList = uniqueBizNames.join(', ');
-                    const iw = new naver.maps.InfoWindow({
-                        content: `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
-                            <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${bizList}</div>
-                            <div style="font-size:11px;color:#64748b;font-weight:600;">업체 ${count}곳 · 사진 ${photos.length}장</div>
-                        </div>`,
-                        borderWidth: 0,
-                        backgroundColor: 'white',
-                        borderColor: 'transparent',
-                        disableAnchor: true,
-                        pixelOffset: new naver.maps.Point(0, -8)
-                    });
+                    const content = `<div style="padding:12px;min-width:160px;font-family:'Noto Sans KR',sans-serif;">
+                        <div style="font-size:13px;font-weight:900;color:#1e293b;margin-bottom:4px;">${bizList}</div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;">업체 ${count}곳 · 사진 ${photos.length}장</div>
+                    </div>`;
 
                     naver.maps.Event.addListener(marker, 'click', () => {
-                        iw.open(mapInstanceRef.current, marker);
+                        infoWindowRef.current.setContent(content);
+                        infoWindowRef.current.open(mapInstanceRef.current, marker);
                     });
 
                     markersRef.current.push(marker);
