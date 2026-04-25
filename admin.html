@@ -328,7 +328,7 @@
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={e => { e.target.src = p.photoUrl; }} />
                                         </div>
-                                        <div className="p-3 text-center">
+                                        <div className="p-3">
                                             <p className="hidden md:block text-xs font-bold text-slate-700 truncate mb-1">{p.photographer}</p>
                                             <p className="text-xs text-slate-400 font-semibold">{formatDateKr(p.datetime)}</p>
                                             {(p.address || (p.lat && p.lng)) && (
