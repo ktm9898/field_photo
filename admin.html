@@ -754,13 +754,6 @@
 
                     {showLogin || (!isAuth && !loading) ? (
                         <Login onLogin={handleLogin} />
-                    ) : !isAuth && loading ? (
-                        <div className="min-h-screen flex items-center justify-center">
-                            <div className="flex flex-col items-center gap-4">
-                                <Icon name="loader-2" size={40} className="text-blue-500 animate-spin" />
-                                <p className="text-slate-500 font-bold animate-pulse">데이터를 불러오는 중...</p>
-                            </div>
-                        </div>
                     ) : (
                         <div className="min-h-screen pb-12">
                             {/* ── 모바일 헤더 (< 768px) ── */}
