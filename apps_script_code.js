@@ -364,44 +364,47 @@ function handleGetFileBase64(data) {
 function handleUpdateMemo(data) {
   const lock = LockService.getScriptLock();
   try {
-    // 최대 10초간 잠금 대기 (다른 작업과 충돌 방지)
-    lock.waitLock(10000);
+    lock.waitLock(15000);
     
-    if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 없습니다.' });
+    if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 누락되었습니다.' });
     
     const sheet = getSheet();
     if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
 
-    const lastRow = sheet.getLastRow();
-    if (lastRow < 2) return jsonResponse({ success: false, error: '데이터가 없습니다.' });
+    const rows = sheet.getDataRange().getValues();
+    const headers = rows[0];
+    
+    // 헤더에서 정확한 인덱스 찾기
+    const fileIdIdx = headers.indexOf('File ID');
+    const memoIdx = headers.indexOf('메모');
+    
+    if (fileIdIdx === -1 || memoIdx === -1) {
+      throw new Error('시트에서 "File ID" 또는 "메모" 컬럼을 찾을 수 없습니다.');
+    }
 
-    // 파일 ID로 해당 행 찾기 (H열 = 8번 인덱스)
-    const range = sheet.getRange(2, 8, lastRow - 1, 1);
-    const values = range.getValues();
     let targetRow = -1;
-
     const searchId = String(data.fileId).trim();
-    for (let i = 0; i < values.length; i++) {
-      if (String(values[i][0]).trim() === searchId) {
-        targetRow = i + 2;
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][fileIdIdx]).trim() === searchId) {
+        targetRow = i + 1;
         break;
       }
     }
 
     if (targetRow === -1) {
-      return jsonResponse({ success: false, error: '해당 파일을 시트에서 찾을 수 없습니다.' });
+      return jsonResponse({ success: false, error: '시트에서 해당 사진 정보를 찾을 수 없습니다.' });
     }
 
-    // 메모 업데이트 (I열 = 9번 인덱스)
-    sheet.getRange(targetRow, 9).setValue(data.memo || '');
-    
-    // 변경사항 즉시 반영
+    // 메모 업데이트 (정확한 컬럼 위치에 기록)
+    sheet.getRange(targetRow, memoIdx + 1).setValue(data.memo || '');
     SpreadsheetApp.flush();
     
     return jsonResponse({ success: true });
     
   } catch (err) {
-    return jsonResponse({ success: false, error: '메모 업데이트 중 오류: ' + err.toString() });
+    console.error('Update Memo Error:', err.toString());
+    return jsonResponse({ success: false, error: '메모 업데이트 오류: ' + err.toString() });
   } finally {
     lock.releaseLock();
   }

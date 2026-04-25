@@ -645,8 +645,8 @@
                 setLoading(true);
                 try {
                     const payload = targetMode === 'master' 
-                        ? { action: 'getAll', key: API_SECRET, pw }
-                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, email: personal.email };
+                        ? { action: 'getAll', key: API_SECRET, pw, _t: Date.now() }
+                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, email: personal.email, _t: Date.now() };
 
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
