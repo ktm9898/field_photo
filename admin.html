@@ -73,16 +73,21 @@
             border-radius: 3px;
         }
 
+        body.modal-open {
+            overflow: hidden;
+        }
+
         /* 라이트박스 */
         #lightbox {
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.92);
-            z-index: 9000;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 11000;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            backdrop-filter: blur(8px);
         }
 
         #lightbox.hidden {
@@ -91,9 +96,9 @@
 
         #lightbox img {
             max-width: 100%;
-            max-height: 90vh;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-height: 92vh;
+            border-radius: 4px;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
         }
 
         #lightbox-close {
@@ -101,20 +106,14 @@
             top: 20px;
             right: 24px;
             color: white;
-            font-size: 28px;
+            font-size: 32px;
             cursor: pointer;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: background 0.2s;
-        }
-
-        #lightbox-close:hover {
-            background: rgba(255, 255, 255, 0.2);
+            z-index: 11001;
         }
 
         /* 지도 */
@@ -132,6 +131,7 @@
             min-width: 180px;
             border: 1px solid rgba(226, 232, 240, 0.8);
             font-family: 'Noto Sans KR', sans-serif;
+            z-index: 100;
         }
         .marker-popup .biz-name {
             font-size: 14px;
@@ -152,10 +152,33 @@
     <div id="root"></div>
 
     <!-- 라이트박스 -->
-    <div id="lightbox" class="hidden">
-        <span id="lightbox-close" onclick="document.getElementById('lightbox').classList.add('hidden')">&#x2715;</span>
-        <img id="lightbox-img" src="" alt="확대 사진">
+    <div id="lightbox" class="hidden" onclick="closeLightbox()">
+        <span id="lightbox-close" onclick="closeLightbox()">&#x2715;</span>
+        <img id="lightbox-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
     </div>
+
+    <script>
+        // 전역 라이트박스 제어 함수 (스크롤 락 포함)
+        window.openLightbox = function(url) {
+            const imgEl = document.getElementById('lightbox-img');
+            // Drive URL인 경우 lh3 프록시 사용 (깨짐 방지)
+            let finalUrl = url;
+            const m1 = url.match(/[?&]id=([^&]+)/);
+            const m2 = url.match(/\/d\/([^/]+)/);
+            if (m1) finalUrl = 'https://lh3.googleusercontent.com/d/' + m1[1];
+            else if (m2) finalUrl = 'https://lh3.googleusercontent.com/d/' + m2[1];
+
+            imgEl.src = finalUrl;
+            document.getElementById('lightbox').classList.remove('hidden');
+            document.body.classList.add('modal-open');
+        };
+        window.closeLightbox = function() {
+            document.getElementById('lightbox').classList.add('hidden');
+            if (!document.querySelector('.fixed.inset-0.z-\\[10000\\]')) { // 다른 모달이 없을 때만 해제
+                document.body.classList.remove('modal-open');
+            }
+        };
+    </script>
 
     <script type="text/babel">
         const { useState, useEffect, useCallback, useMemo, useRef } = React;
@@ -252,7 +275,7 @@
             useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, []);
             const bg = { success: 'bg-emerald-600', error: 'bg-red-600', info: 'bg-blue-600' };
             return (
-                <div className={`fixed top-6 right-6 z-[9999] ${bg[type] || bg.info} text-white px-5 py-3 rounded-xl shadow-2xl font-bold text-sm toast-anim flex items-center gap-2`}>
+                <div className={`fixed top-6 right-6 z-[12000] ${bg[type] || bg.info} text-white px-5 py-3 rounded-xl shadow-2xl font-bold text-sm toast-anim flex items-center gap-2`}>
                     <Icon name={type === 'success' ? 'check-circle' : type === 'error' ? 'alert-circle' : 'info'} size={16} />
                     {message}
                 </div>
@@ -305,20 +328,33 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle }) => {
+        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle, onUpdateMemo }) => {
             if (!group || !group.photos) return null;
+
+            const [editMemoId, setEditMemoId] = useState(null);
+            const [memoValue, setMemoValue] = useState('');
+            const [isSaving, setIsSaving] = useState(false);
 
             const groupPhotos = group.photos;
 
-            const openLightbox = (url) => {
-                document.getElementById('lightbox-img').src = url; // toThumbUrl(url);
-                document.getElementById('lightbox').classList.remove('hidden');
+            const handleMemoClick = (photo) => {
+                setEditMemoId(photo.fileId);
+                setMemoValue(photo.memo || '');
+            };
+
+            const handleSaveMemo = async (fileId) => {
+                setIsSaving(true);
+                const ok = await onUpdateMemo(fileId, memoValue);
+                if (ok) {
+                    setEditMemoId(null);
+                }
+                setIsSaving(false);
             };
 
             return (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={onClose}>
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col ring-1 ring-slate-200" onClick={e => e.stopPropagation()}>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col ring-1 ring-slate-200 overflow-hidden" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between px-4 py-4 border-b border-slate-100">
                             <div className="min-w-0 pr-4">
                                 <h2 className="text-lg font-black text-slate-800 truncate">
@@ -343,7 +379,7 @@
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
                                 {groupPhotos.map((p, idx) => (
                                     <div key={idx} className="group relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100 hover:border-blue-200 transition-all hover:shadow-md">
-                                        <div className="aspect-square overflow-hidden cursor-pointer" onClick={() => openLightbox(p.photoUrl)}>
+                                        <div className="aspect-square overflow-hidden cursor-pointer" onClick={() => window.openLightbox(p.photoUrl)}>
                                             <img src={toThumbUrl(p.photoUrl)} alt={`사진 ${idx + 1}`}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={e => { e.target.src = p.photoUrl; }} />
@@ -354,33 +390,50 @@
                                                 {formatDateKr(p.datetime)}
                                             </p>
                                             
-                                            {/* 2. 주소/위치 */}
+                                            {/* 2. 주소/위치 (최대 2줄) */}
                                             {(p.address || (p.lat && p.lng)) && (
-                                                <p className="text-[11px] font-bold text-slate-400 truncate">
+                                                <p className="text-[11px] font-bold text-slate-400 line-clamp-2 min-h-[2em]">
                                                     {p.address || (Number(p.lat).toFixed(5) + ', ' + Number(p.lng).toFixed(5))}
                                                 </p>
                                             )}
 
-                                            {/* 3. 메모 (기울임꼴, 크기 통일) */}
-                                            {p.memo && (
-                                                <p className="text-[11px] text-slate-600 italic line-clamp-2 mt-1">
-                                                    {p.memo}
-                                                </p>
+                                            {/* 메모 편집 UI */}
+                                            {editMemoId === p.fileId ? (
+                                                <div className="mt-2 space-y-2">
+                                                    <textarea 
+                                                        className="w-full p-2 text-xs border border-blue-200 rounded-lg outline-none focus:ring-1 ring-blue-500"
+                                                        value={memoValue}
+                                                        onChange={e => setMemoValue(e.target.value)}
+                                                        placeholder="메모 입력..."
+                                                        rows="3" autoFocus
+                                                    />
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleSaveMemo(p.fileId)} disabled={isSaving}
+                                                            className="flex-1 py-1.5 bg-blue-600 text-white text-[10px] font-bold rounded-md disabled:opacity-50">
+                                                            {isSaving ? '저장중' : '저장'}
+                                                        </button>
+                                                        <button onClick={() => setEditMemoId(null)}
+                                                            className="px-2 py-1.5 bg-slate-200 text-slate-600 text-[10px] font-bold rounded-md">
+                                                            취소
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex gap-1.5 mt-3">
+                                                    {/* 메모 버튼 (유무에 따라 스타일 다름) */}
+                                                    <button onClick={() => handleMemoClick(p)}
+                                                        className={`flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-bold rounded-lg transition-colors border ${p.memo ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+                                                        <Icon name={p.memo ? "file-text" : "plus-square"} size={14} />
+                                                        <span>{p.memo ? "메모 있음" : "메모 추가"}</span>
+                                                    </button>
+                                                    
+                                                    <button onClick={() => onDownloadSingle(p, idx)}
+                                                        className="flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-100 transition-colors">
+                                                        <Icon name="download" size={14} />
+                                                        <span className="hidden md:inline">다운로드</span>
+                                                    </button>
+                                                </div>
                                             )}
-
-                                            {/* 하단 버튼 (높이 및 정렬 통일) */}
-                                            <div className="flex gap-1.5 mt-3">
-                                                <a href={p.photoUrl} target="_blank" rel="noreferrer"
-                                                    className="flex-1 h-9 flex items-center justify-center text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100 rounded-lg hover:bg-blue-100 transition-colors">
-                                                    <span className="md:hidden">확대</span>
-                                                    <span className="hidden md:inline">크게 보기</span>
-                                                </a>
-                                                <button onClick={() => onDownloadSingle(p, idx)}
-                                                    className="flex-1 h-9 flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-lg hover:bg-emerald-100 transition-colors">
-                                                    <Icon name="download" size={14} />
-                                                    <span className="hidden md:inline">다운로드</span>
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 ))}
@@ -499,6 +552,18 @@
             const [photoModal, setPhotoModal] = useState(null);
             const [showMap, setShowMap] = useState(false);
 
+            // 모달 오픈 시 스크롤 락
+            useEffect(() => {
+                if (photoModal) {
+                    document.body.classList.add('modal-open');
+                } else {
+                    // 라이트박스가 닫혀있을 때만 해제
+                    if (document.getElementById('lightbox').classList.contains('hidden')) {
+                        document.body.classList.remove('modal-open');
+                    }
+                }
+            }, [photoModal]);
+
             const [dateFrom, setDateFrom] = useState('');
             const [dateTo, setDateTo] = useState('');
             const [searchBiz, setSearchBiz] = useState('');
@@ -560,6 +625,33 @@
                     setLoading(false);
                 }
             }, [viewMode]);
+
+            const updateMemo = async (fileId, newMemo) => {
+                try {
+                    const resp = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'updateMemo', key: API_SECRET, fileId, memo: newMemo })
+                    });
+                    const res = await resp.json();
+                    if (res.success) {
+                        // 로컬 상태 업데이트 (모달 및 원본 데이터)
+                        setRecords(prev => prev.map(r => r.fileId === fileId ? { ...r, memo: newMemo } : r));
+                        if (photoModal) {
+                            setPhotoModal(prev => ({
+                                ...prev,
+                                photos: prev.photos.map(p => p.fileId === fileId ? { ...p, memo: newMemo } : p)
+                            }));
+                        }
+                        setToast({ message: '메모가 저장되었습니다.', type: 'success' });
+                        return true;
+                    } else {
+                        throw new Error(res.error);
+                    }
+                } catch (err) {
+                    setToast({ message: '메모 저장 실패: ' + err.message, type: 'error' });
+                    return false;
+                }
+            };
 
             useEffect(() => {
                 loadData();
@@ -1018,7 +1110,7 @@
                                                     {r.photoUrl ? (
                                                         <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
                                                             className="w-10 h-10 object-cover rounded-lg border border-slate-200 cursor-pointer"
-                                                            onClick={() => { document.getElementById('lightbox-img').src = toThumbUrl(r.photoUrl); document.getElementById('lightbox').classList.remove('hidden'); }} />
+                                                            onClick={() => window.openLightbox(r.photoUrl)} />
                                                     ) : (
                                                         <div className="w-10 h-10 bg-slate-100 rounded-lg flex items-center justify-center">
                                                             <Icon name="image-off" size={16} className="text-slate-300" />
@@ -1086,7 +1178,7 @@
                                                             {r.photoUrl ? (
                                                                 <img src={toThumbUrl(r.photoUrl)} alt="썸네일"
                                                                     className="w-14 h-14 object-cover rounded-lg border border-slate-200 cursor-pointer hover:opacity-80 transition-opacity mx-auto"
-                                                                    onClick={() => { document.getElementById('lightbox-img').src = toThumbUrl(r.photoUrl); document.getElementById('lightbox').classList.remove('hidden'); }} />
+                                                                    onClick={() => window.openLightbox(r.photoUrl)} />
                                                             ) : (
                                                                 <div className="w-14 h-14 bg-slate-100 rounded-lg flex items-center justify-center mx-auto">
                                                                     <Icon name="image-off" size={20} className="text-slate-300" />

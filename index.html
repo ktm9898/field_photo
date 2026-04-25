@@ -614,6 +614,49 @@
             overflow-x: auto;
             padding-bottom: 4px;
         }
+
+        /* 라이트박스 */
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        #lightbox {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 11000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(8px);
+        }
+
+        #lightbox.hidden {
+            display: none;
+        }
+
+        #lightbox img {
+            max-width: 100%;
+            max-height: 92vh;
+            border-radius: 4px;
+            box-shadow: 0 0 100px rgba(0, 0, 0, 0.8);
+        }
+
+        #lightbox-close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 11001;
+        }
     </style>
 </head>
 
@@ -630,6 +673,12 @@
     <div id="upload-progress-overlay">
         <div class="spinner"></div>
         <p id="upload-progress-text">사진을 업로드하는 중...</p>
+    </div>
+
+    <!-- 라이트박스 -->
+    <div id="lightbox" class="hidden" onclick="closeLightbox()">
+        <span id="lightbox-close" onclick="closeLightbox()">&#x2715;</span>
+        <img id="lightbox-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
     </div>
 
     <!-- 토스트 -->
@@ -1410,7 +1459,7 @@
 
             var thumbs = photos.slice(0, 6).map(function (p) {
                 var thumbSrc = toThumbUrl(p.photoUrl);
-                return '<img class="popup-thumb" src="' + thumbSrc + '" alt="사진" onclick="window.open(\'' + p.photoUrl + '\',\'_blank\')">';
+                return '<img class="popup-thumb" src="' + thumbSrc + '" alt="사진" onclick="openLightbox(\'' + p.photoUrl + '\')">';
             }).join('');
 
             var backBtn = showBack
@@ -1516,6 +1565,28 @@
         document.getElementById('photographer-input').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') savePhotographer();
         });
+
+        // ─────────────────────────────────────────────
+        //  라이트박스 제어
+        // ─────────────────────────────────────────────
+        window.openLightbox = function(url) {
+            const imgEl = document.getElementById('lightbox-img');
+            // Drive URL인 경우 lh3 프록시 사용 (선명도 및 로딩 개선)
+            let finalUrl = url;
+            const m1 = url.match(/[?&]id=([^&]+)/);
+            const m2 = url.match(/\/d\/([^/]+)/);
+            if (m1) finalUrl = 'https://lh3.googleusercontent.com/d/' + m1[1];
+            else if (m2) finalUrl = 'https://lh3.googleusercontent.com/d/' + m2[1];
+
+            imgEl.src = finalUrl;
+            document.getElementById('lightbox').classList.remove('hidden');
+            document.body.classList.add('modal-open');
+        };
+
+        window.closeLightbox = function() {
+            document.getElementById('lightbox').classList.add('hidden');
+            document.body.classList.remove('modal-open');
+        };
 
         // ─────────────────────────────────────────────
         //  토스트

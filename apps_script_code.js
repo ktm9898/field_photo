@@ -126,6 +126,12 @@ function doPost(e) {
       return handleGetMyPhotos(data);
     }
 
+    // 6) 메모 업데이트
+    if (data.action === 'updateMemo') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleUpdateMemo(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -338,4 +344,36 @@ function handleGetFileBase64(data) {
   } catch (err) {
     return jsonResponse({ success: false, error: '파일을 읽는 중 오류 발생: ' + err.toString() });
   }
+}
+
+// ── 메모 업데이트 ───────────────────────────────────────────
+function handleUpdateMemo(data) {
+  if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 없습니다.' });
+  
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ success: false, error: '데이터가 없습니다.' });
+
+  // 파일 ID로 해당 행 찾기 (H열 = 8번 인덱스)
+  const range = sheet.getRange(2, 8, lastRow - 1, 1);
+  const values = range.getValues();
+  let targetRow = -1;
+
+  for (let i = 0; i < values.length; i++) {
+    if (String(values[i][0]) === String(data.fileId)) {
+      targetRow = i + 2;
+      break;
+    }
+  }
+
+  if (targetRow === -1) {
+    return jsonResponse({ success: false, error: '해당 파일을 시트에서 찾을 수 없습니다.' });
+  }
+
+  // 메모 업데이트 (I열 = 9번 인덱스)
+  sheet.getRange(targetRow, 9).setValue(data.memo || '');
+  
+  return jsonResponse({ success: true });
 }
