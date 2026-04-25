@@ -680,8 +680,13 @@
             };
 
             const handleSendEmailRow = async (group) => {
-                const targetEmail = prompt('어떤 이메일로 발송하시겠습니까?', group.email || '');
+                const lastEmail = localStorage.getItem('last_send_email') || '';
+                const defaultEmail = group.email || lastEmail;
+                const targetEmail = prompt('어떤 이메일로 발송하시겠습니까?', defaultEmail);
+                
                 if (!targetEmail) return;
+                localStorage.setItem('last_send_email', targetEmail); // 입력한 주소 기억
+                
                 setToast({ message: '메일 발송을 요청했습니다. (첨부파일 크기에 따라 시간이 걸릴 수 있습니다.)', type: 'info' });
                 try {
                     const pw = sessionStorage.getItem('fp_admin_pw');
