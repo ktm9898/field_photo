@@ -319,10 +319,10 @@
                             </div>
                         </div>
 
-                        <div className="overflow-y-auto p-6 custom-scroll flex-1">
+                        <div className="overflow-y-auto p-6 bg-slate-50/50 custom-scroll flex-1">
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                                 {groupPhotos.map((p, idx) => (
-                                    <div key={idx} className="group relative bg-slate-50 rounded-xl overflow-hidden border border-slate-100 hover:border-blue-200 transition-all hover:shadow-md">
+                                    <div key={idx} className="group relative bg-white rounded-xl overflow-hidden border border-slate-200 shadow-sm hover:border-blue-300 transition-all hover:shadow-md">
                                         <div className="aspect-square overflow-hidden cursor-pointer" onClick={() => openLightbox(p.photoUrl)}>
                                             <img src={toThumbUrl(p.photoUrl)} alt={`사진 ${idx + 1}`}
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
