@@ -202,8 +202,23 @@
 
         // ── 아이콘 컴포넌트 ──
         const Icon = ({ name, size = 18, className = '' }) => {
-            useEffect(() => { if (window.lucide) window.lucide.createIcons(); }, [name]);
-            return <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>;
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && iconRef.current) {
+                    // 전체 문서를 스캔하는 대신 해당 요소만 타겟팅하여 변환
+                    try {
+                        window.lucide.createIcons({
+                            nameAttr: 'data-lucide',
+                            icons: window.lucide.icons 
+                        });
+                    } catch (e) {
+                        console.warn('Lucide icon error:', e);
+                    }
+                }
+            }, [name]);
+            
+            // key를 name으로 주어 아이콘이 바뀔 때마다 React가 아예 새로 그리도록 유도 (충돌 방지)
+            return <i key={name} ref={iconRef} data-lucide={name} style={{ width: size, height: size, display: 'inline-flex' }} className={className}></i>;
         };
 
         // ── 토스트 ──
