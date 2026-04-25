@@ -328,7 +328,8 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle, onUpdateMemo = () => { console.error('onUpdateMemo prop missing'); } }) => {
+        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle, memoUpdater }) => {
+            console.log('PhotoGalleryModal Rendered. memoUpdater type:', typeof memoUpdater);
             if (!group || !group.photos) return null;
 
             const [editMemoId, setEditMemoId] = useState(null);
@@ -343,8 +344,12 @@
             };
 
             const handleSaveMemo = async (fileId) => {
+                if (typeof memoUpdater !== 'function') {
+                    alert('오류: 메모 저장 함수가 연결되지 않았습니다. 페이지를 새로고침(F5) 해주세요.');
+                    return;
+                }
                 setIsSaving(true);
-                const ok = await onUpdateMemo(fileId, memoValue);
+                const ok = await memoUpdater(fileId, memoValue);
                 if (ok) {
                     setEditMemoId(null);
                 }
@@ -584,13 +589,12 @@
                 const timeoutId = setTimeout(() => controller.abort(), 15000); 
                 
                 try {
-                    // 모바일 브라우저의 POST 리다이렉트 문제를 피하기 위해 GET 방식으로 전송
                     const params = new URLSearchParams();
                     params.append('action', 'updateMemo');
                     params.append('key', API_SECRET);
                     params.append('fileId', fileId);
                     params.append('memo', newMemo);
-                    params.append('_t', Date.now()); // 캐시 방지
+                    params.append('_t', Date.now()); 
 
                     const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
 
@@ -628,7 +632,7 @@
                     console.error('Memo update error:', err);
                     const msg = err.name === 'AbortError' ? '시간 초과 (네트워크 응답 없음)' : err.message;
                     setToast({ message: '메모 저장 실패: ' + msg, type: 'error' });
-                    if (err.name !== 'AbortError') alert('메모 저장 중 오류 발생: ' + msg);
+                    if (err.name !== 'AbortError') alert('메모 저장 오류: ' + msg);
                     return false;
                 }
             }, [photoModal]);
@@ -1306,7 +1310,7 @@
                                     onClose={() => setPhotoModal(null)} 
                                     onDownload={downloadGroup}
                                     onDownloadSingle={triggerDownload}
-                                    onUpdateMemo={updateMemo}
+                                    memoUpdater={updateMemo}
                                 />
                             )}
                         </div>
