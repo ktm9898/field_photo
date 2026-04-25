@@ -374,12 +374,12 @@ function handleUpdateMemo(data) {
     const rows = sheet.getDataRange().getValues();
     const headers = rows[0];
     
-    // 헤더에서 정확한 인덱스 찾기
-    const fileIdIdx = headers.indexOf('File ID');
+    // 헤더에서 정확한 인덱스 찾기 (유연하게 찾도록 개선)
+    const fileIdIdx = headers.findIndex(h => String(h).includes('ID') || String(h).includes('id'));
     const memoIdx = headers.indexOf('메모');
     
     if (fileIdIdx === -1 || memoIdx === -1) {
-      throw new Error('시트에서 "File ID" 또는 "메모" 컬럼을 찾을 수 없습니다.');
+      throw new Error('시트에서 사진 ID 또는 메모 컬럼을 찾을 수 없습니다. (현재 헤더: ' + headers.join(',') + ')');
     }
 
     let targetRow = -1;
