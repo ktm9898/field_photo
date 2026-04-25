@@ -630,14 +630,21 @@
 
             const updateMemo = useCallback(async (fileId, newMemo) => {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15초 타임아웃
+                const timeoutId = setTimeout(() => controller.abort(), 15000); 
                 
                 try {
+                    // 데이터 전송 방식을 안정성이 높은 Form-data(URLSearchParams)로 변경
+                    const params = new URLSearchParams();
+                    params.append('action', 'updateMemo');
+                    params.append('key', API_SECRET);
+                    params.append('fileId', fileId);
+                    params.append('memo', newMemo);
+
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'cors',
                         redirect: 'follow',
-                        body: JSON.stringify({ action: 'updateMemo', key: API_SECRET, fileId, memo: newMemo }),
+                        body: params,
                         signal: controller.signal
                     });
                     
@@ -647,7 +654,6 @@
                     
                     const res = await resp.json();
                     if (res.success) {
-                        // 로컬 상태 업데이트
                         setRecords(prev => prev.map(group => ({
                             ...group,
                             photos: group.photos.map(p => p.fileId === fileId ? { ...p, memo: newMemo } : p),
@@ -668,8 +674,10 @@
                 } catch (err) {
                     clearTimeout(timeoutId);
                     console.error('Memo update error:', err);
-                    const msg = err.name === 'AbortError' ? '시간 초과 (네트워크가 불안정합니다)' : err.message;
+                    const msg = err.name === 'AbortError' ? '시간 초과 (네트워크 응답 없음)' : err.message;
                     setToast({ message: '메모 저장 실패: ' + msg, type: 'error' });
+                    // 디버깅용 경고창
+                    if (err.name !== 'AbortError') alert('메모 저장 중 오류 발생: ' + msg);
                     return false;
                 }
             }, [photoModal]);
