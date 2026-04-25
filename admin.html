@@ -751,8 +751,7 @@
                         currentGroup = { ...r, photos: [r] };
                     } else {
                         if (currentGroup.bizNumber === r.bizNumber &&
-                            currentGroup.photographer === r.photographer &&
-                            currentGroup.memo === r.memo) {
+                            currentGroup.photographer === r.photographer) {
                             currentGroup.photos.push(r);
                         } else {
                             groups.push(currentGroup);
@@ -1241,7 +1240,12 @@
                                                         </td>
                                                         <td className="px-3 py-3 text-center" style={{minWidth:'200px',maxWidth:'400px'}}>
                                                             <p className="text-xs text-slate-600 font-semibold line-clamp-3 text-center">
-                                                                {r.memo || <span className="text-slate-300">-</span>}
+                                                                {(() => {
+                                                                    const memos = r.photos.map(p => p.memo).filter(m => m && m.trim() !== '');
+                                                                    if (memos.length === 0) return <span className="text-slate-300">-</span>;
+                                                                    const uniqueMemos = [...new Set(memos)];
+                                                                    return uniqueMemos.join(' / ');
+                                                                })()}
                                                             </p>
                                                         </td>
                                                         <td className="px-3 py-3 pr-4 whitespace-nowrap">
