@@ -648,7 +648,7 @@
                 const personal = getPersonalInfo();
 
                 // 모드별 권한 체크
-                if (targetMode === 'master' && pw !== ADMIN_PW) {
+                if (targetMode === 'master' && !pw) {
                     setIsAuth(false);
                     setShowLogin(true);
                     return false;
