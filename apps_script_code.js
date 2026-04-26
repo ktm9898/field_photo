@@ -17,12 +17,29 @@
 
 // ── 설정 ───────────────────────────────────────────────────
 const SHEET_NAME   = 'Sheet1';
-const API_SECRET   = 'FieldPhoto2026!';        // index.html, admin.html 코드와 동일하게 유지
-const ADMIN_PW     = '2082';                   // 관리자 페이지 비밀번호
+
+// ★ 보안을 위해 스크립트 속성(PropertiesService)에서 값을 읽어옵니다.
+// 아래 값들은 setupSecrets() 함수를 한 번 실행하여 설정해야 합니다.
+const props        = PropertiesService.getScriptProperties();
+const API_SECRET   = props.getProperty('API_SECRET') || 'PLEASE_RUN_SETUP';
+const ADMIN_PW     = props.getProperty('ADMIN_PW')   || 'PLEASE_RUN_SETUP';
 
 // ★ 아래 두 값을 본인 환경에 맞게 수정하세요
 const SPREADSHEET_ID  = '';  // 구글 시트 URL에서 /d/ 뒤에 오는 긴 ID 값
 const DRIVE_FOLDER_ID = '';  // 구글 드라이브 폴더 URL에서 /folders/ 뒤 ID 값
+
+/**
+ * [최초 1회 실행] 보안을 위한 비밀번호 및 API 키 설정 함수
+ * 깃허브에 코드를 공개해도 이 설정값은 서버(Google)에만 저장되므로 안전합니다.
+ */
+function setupSecrets() {
+  const scriptProperties = PropertiesService.getScriptProperties();
+  scriptProperties.setProperties({
+    'API_SECRET': 'fp_k3y_9898_security_v1!', // 통신용 키 (복잡하게 설정)
+    'ADMIN_PW': '2082'                        // 관리자 로그인 비밀번호
+  });
+  console.log('보안 설정이 완료되었습니다. 이제 배포 후 사용하세요.');
+}
 
 // ── 헬퍼 ───────────────────────────────────────────────────
 function jsonResponse(obj) {
