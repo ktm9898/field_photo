@@ -1197,7 +1197,7 @@
                                         <table className="w-full text-sm border-collapse min-w-[900px]">
                                             <thead>
                                                 <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200">
-                                                    <th className="pl-8 pr-2 py-3 text-center w-14">#</th>
+                                                    <th className="pl-5 pr-2 py-3 text-center w-14">#</th>
                                                     <th className="px-3 py-3 text-center w-[180px]">제목(업체명)</th>
                                                     <th className="px-3 py-3 text-center w-[80px]">썸네일</th>
                                                     <th className="px-3 py-3 text-center w-[150px]">촬영일시</th>
@@ -1223,7 +1223,7 @@
                                                     </tr>
                                                         ) : paginatedGroups.map((r, idx) => (
                                                     <tr key={idx} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
-                                                        <td className="pl-8 pr-2 py-3 text-center text-xs font-bold text-slate-400">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
+                                                        <td className="pl-5 pr-2 py-3 text-center text-xs font-bold text-slate-400">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
                                                         <td className="px-3 py-3 text-center">
                                                             <div className="font-black text-slate-700 text-sm">
                                                                 {r.bizNumber || '-'}
