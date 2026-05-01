@@ -791,9 +791,26 @@
                 const now = new Date();
                 const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
                 const todayCount = records.filter(r => toDateKey(r.datetime) === todayKey).length;
-                const bizSet = new Set(records.map(r => r.bizNumber).filter(Boolean));
+                
+                // 사진 목록과 동일한 그룹화 로직 적용 (전체 데이터 대상)
+                const sortedAll = [...records].sort((a, b) => {
+                    const tA = new Date(a.datetime).getTime() || 0;
+                    const tB = new Date(b.datetime).getTime() || 0;
+                    return tB - tA;
+                });
+                
+                let groupCount = 0;
+                let lastBiz = null, lastPhotographer = null;
+                for (const r of sortedAll) {
+                    if (r.bizNumber !== lastBiz || r.photographer !== lastPhotographer) {
+                        groupCount++;
+                        lastBiz = r.bizNumber;
+                        lastPhotographer = r.photographer;
+                    }
+                }
+
                 const photographerSet = new Set(records.map(r => r.photographer).filter(Boolean));
-                return { total: records.length, today: todayCount, bizCount: bizSet.size, photographerCount: photographerSet.size };
+                return { total: records.length, today: todayCount, bizCount: groupCount, photographerCount: photographerSet.size };
             }, [records]);
 
             const downloadCSV = () => {
@@ -922,7 +939,7 @@
                             <div className="md:hidden bg-white border-b border-slate-200 px-3 py-2.5">
                                 <div className="grid grid-cols-3 gap-0 divide-x divide-slate-100">
                                     {[
-                                        { label: '업체', value: stats.bizCount, unit: '건', color: 'text-orange-500' },
+                                        { label: '업체(방문)', value: stats.bizCount, unit: '건', color: 'text-orange-500' },
                                         { label: '전체', value: stats.total, unit: '장', color: 'text-blue-600' },
                                         { label: '오늘', value: stats.today, unit: '장', color: 'text-emerald-600' },
                                     ].map(s => (
@@ -1034,7 +1051,7 @@
                                 {/* PC 통계 카드 */}
                                 <div className="hidden md:grid grid-cols-4 gap-4">
                                     {[
-                                        { label: '업체 수', value: stats.bizCount, unit: '건', icon: 'building-2', color: 'bg-orange-100 text-orange-600' },
+                                        { label: '업체(방문) 수', value: stats.bizCount, unit: '건', icon: 'building-2', color: 'bg-orange-100 text-orange-600' },
                                         { label: '총 사진', value: stats.total, unit: '장', icon: 'image', color: 'bg-blue-100 text-blue-600' },
                                         { label: '오늘 촬영', value: stats.today, unit: '장', icon: 'calendar', color: 'bg-emerald-100 text-emerald-600' },
                                         { label: '촬영자 수', value: stats.photographerCount, unit: '명', icon: 'users', color: 'bg-purple-100 text-purple-600' },
