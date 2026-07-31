@@ -150,7 +150,6 @@ function doPost(e) {
     // 7) 사진 삭제 (단일 및 다중)
     if (data.action === 'deletePhoto' || data.action === 'deletePhotos') {
       if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
-      if (data.pw !== ADMIN_PW) return jsonResponse({ success: false, error: '비밀번호가 틀렸습니다.' });
       return handleDeletePhotos(data);
     }
 
