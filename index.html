@@ -1534,15 +1534,9 @@
             const oldName = localStorage.getItem('photographer_name') || '';
             const oldPw = localStorage.getItem('photographer_pw') || '';
 
-            localStorage.setItem('photographer_name', name);
-            localStorage.setItem('photographer_pw', pw);
-            localStorage.setItem('photographer_email', email);
-            document.getElementById('photographer-name').textContent = name;
-            document.getElementById('photographer-overlay').classList.add('hidden');
-
-            // 비밀번호 변경 또는 최초 설정 시 기존 시트 비밀번호 일괄 동기화
+            // 비밀번호 변경 또는 설정 업데이트 시 서버에서 기존 비밀번호 검증
             if (oldName === name && oldPw !== pw) {
-                showToast('기존 사진 비밀번호 업데이트 중...', 'info');
+                showToast('비밀번호 동기화 및 검증 중...', 'info');
                 try {
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
@@ -1555,17 +1549,24 @@
                         })
                     });
                     const res = await resp.json();
-                    if (res.success) {
-                        showToast(`설정 완료! 기존 사진 (${res.updatedCount || 0}건) 비밀번호 동기화 완료`, 'success');
-                    } else {
-                        showToast('설정 완료 (시트 비밀번호 동기화 실패: ' + res.error + ')', 'info');
+                    if (!res.success) {
+                        showToast('비밀번호 변경 실패: ' + (res.error || '이전 비밀번호 불일치'), 'error');
+                        return; // 실패 시 팝업을 닫지 않고 로컬스토리지 저장 취소
                     }
+                    showToast(`비밀번호가 변경되었습니다! (${res.updatedCount || 0}건 동기화)`, 'success');
                 } catch (e) {
-                    showToast('설정 완료', 'success');
+                    showToast('서버 응답 오류: ' + e.message, 'error');
+                    return; // 오류 시 중단
                 }
             } else {
                 showToast('촬영자 설정 완료', 'success');
             }
+
+            localStorage.setItem('photographer_name', name);
+            localStorage.setItem('photographer_pw', pw);
+            localStorage.setItem('photographer_email', email);
+            document.getElementById('photographer-name').textContent = name;
+            document.getElementById('photographer-overlay').classList.add('hidden');
 
             // 기존 마커 제거 후 새 촬영자의 마커 복원
             Object.keys(allMarkers).forEach(function (k) {
