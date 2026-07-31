@@ -321,12 +321,12 @@ function handleSendEmail(data) {
   return jsonResponse({ success: true });
 }
 
-// ── 내 사진 조회 (촬영자 이름 + 개인 비밀번호로 필터) ───────────────
+// ── 내 사진 조회 (촬영자 이름 + 비밀번호로 필터) ───────────────
 function handleGetMyPhotos(data) {
   const photographer = (data.photographer || '').trim();
   const userPw = (data.userPw || data.password || data.pw || '').trim();
   if (!photographer) return jsonResponse({ success: false, error: '촬영자 이름이 필요합니다.' });
-  if (!userPw) return jsonResponse({ success: false, error: '개인 비밀번호가 필요합니다.' });
+  if (!userPw) return jsonResponse({ success: false, error: '비밀번호가 필요합니다.' });
 
   const sheet = getSheet();
   if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });

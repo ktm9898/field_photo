@@ -730,13 +730,13 @@
     <div id="photographer-overlay" class="hidden">
         <div id="photographer-modal">
             <h2>촬영자 설정</h2>
-            <p>이름과 개인 비밀번호를 입력해주세요</p>
+            <p>이름과 비밀번호를 입력해주세요</p>
             <div class="field-group">
                 <label class="field-label">이름<span class="required-dot">*</span></label>
                 <input type="text" id="photographer-input" class="field-input" placeholder="예: 홍길동" maxlength="20">
             </div>
             <div class="field-group">
-                <label class="field-label">개인 비밀번호<span class="required-dot">*</span></label>
+                <label class="field-label">비밀번호<span class="required-dot">*</span></label>
                 <input type="password" id="photographer-pw-input" class="field-input" placeholder="본인 사진 확인용 비밀번호" maxlength="20">
             </div>
             <div class="field-group">
@@ -1529,7 +1529,7 @@
             const pw = document.getElementById('photographer-pw-input').value.trim();
             const email = document.getElementById('photographer-email-input').value.trim();
             if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
-            if (!pw) { showToast('개인 비밀번호를 입력해주세요.', 'error'); return; }
+            if (!pw) { showToast('비밀번호를 입력해주세요.', 'error'); return; }
 
             const oldName = localStorage.getItem('photographer_name') || '';
             const oldPw = localStorage.getItem('photographer_pw') || '';
