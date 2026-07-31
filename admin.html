@@ -758,6 +758,22 @@
             const [toast, setToast] = useState(null);
             const [photoModal, setPhotoModal] = useState(null);
             const [showMap, setShowMap] = useState(false);
+            const [selectedGroupKeys, setSelectedGroupKeys] = useState(new Set());
+
+            const getGroupKey = useCallback((r) => {
+                if (!r) return '';
+                const fId = r.photos && r.photos[0] ? r.photos[0].fileId : '';
+                return (r.bizNumber || '') + '|' + (r.photographer || '') + '|' + fId;
+            }, []);
+
+            const toggleSelectGroup = useCallback((key) => {
+                setSelectedGroupKeys(prev => {
+                    const next = new Set(prev);
+                    if (next.has(key)) next.delete(key);
+                    else next.add(key);
+                    return next;
+                });
+            }, []);
 
             // 모달 오픈 시 스크롤 락
             useEffect(() => {
@@ -1043,6 +1059,69 @@
                 return groupedRecords.slice(start, start + PAGE_SIZE);
             }, [groupedRecords, currentPage]);
 
+            const toggleSelectAllPaginated = (isSelectAll) => {
+                if (isSelectAll) {
+                    const next = new Set(selectedGroupKeys);
+                    paginatedGroups.forEach(r => next.add(getGroupKey(r)));
+                    setSelectedGroupKeys(next);
+                } else {
+                    const next = new Set(selectedGroupKeys);
+                    paginatedGroups.forEach(r => next.delete(getGroupKey(r)));
+                    setSelectedGroupKeys(next);
+                }
+            };
+
+            const isAllPaginatedSelected = paginatedGroups.length > 0 && paginatedGroups.every(r => selectedGroupKeys.has(getGroupKey(r)));
+
+            const handleBatchDelete = async () => {
+                if (selectedGroupKeys.size === 0) {
+                    setToast({ message: '삭제할 항목을 선택해주세요.', type: 'info' });
+                    return;
+                }
+                
+                const selectedGroups = groupedRecords.filter(r => selectedGroupKeys.has(getGroupKey(r)));
+                const fileIds = selectedGroups.flatMap(r => r.photos.map(p => p.fileId)).filter(Boolean);
+                
+                if (fileIds.length === 0) return;
+
+                if (!confirm(`선택한 ${selectedGroupKeys.size}개 업체 (총 ${fileIds.length}장의 사진)를 정말 일괄 삭제하시겠습니까?\n(구글 드라이브 휴지통 이동 및 구글 시트에서 삭제됩니다)`)) {
+                    return;
+                }
+
+                const pw = getPw();
+                if (!pw) {
+                    setToast({ message: '관리자 비밀번호가 필요합니다.', type: 'error' });
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const res = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'deletePhotos',
+                            key: API_SECRET,
+                            pw: pw,
+                            fileIds: fileIds
+                        })
+                    });
+                    const result = await res.json();
+                    if (result.success) {
+                        const idSet = new Set(fileIds);
+                        setRecords(prev => prev.filter(p => !idSet.has(p.fileId)));
+                        setSelectedGroupKeys(new Set());
+                        setToast({ message: `${selectedGroupKeys.size}개 업체 (${fileIds.length}장 사진)가 삭제되었습니다.`, type: 'success' });
+                    } else {
+                        setToast({ message: '삭제 실패: ' + result.error, type: 'error' });
+                    }
+                } catch (err) {
+                    console.error('handleBatchDelete error:', err);
+                    setToast({ message: '삭제 중 오류: ' + err.message, type: 'error' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
             const stats = useMemo(() => {
                 const now = new Date();
                 const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
@@ -1218,23 +1297,27 @@
                                     </div>
                                     <div className="flex gap-1 shrink-0">
                                         <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer })}
-                                            className="h-[38px] px-3 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
+                                            className="h-[38px] px-2.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
                                             조회
                                         </button>
                                         <button onClick={() => setShowMobileFilters(!showMobileFilters)}
-                                            className={`h-[38px] px-2.5 flex items-center gap-1 border rounded-lg active:scale-95 transition-all text-xs font-bold ${showMobileFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`}>
+                                            className={`h-[38px] w-9 flex items-center justify-center border rounded-lg active:scale-95 transition-all text-xs font-bold ${showMobileFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`} title="상세 필터">
                                             <Icon name="filter" size={14} />
-                                            상세
                                         </button>
                                         <button onClick={() => { setDateFrom(''); setDateTo(''); setSearchBiz(''); setSearchPhotographer(''); setAppliedFilter({}); }}
-                                            className="h-[38px] w-9 flex items-center justify-center border border-slate-200 text-slate-400 rounded-lg active:scale-95 transition-transform bg-white">
+                                            className="h-[38px] w-9 flex items-center justify-center border border-slate-200 text-slate-400 rounded-lg active:scale-95 transition-transform bg-white" title="필터 초기화">
                                             <Icon name="rotate-ccw" size={14} />
                                         </button>
                                         <button onClick={() => loadData()}
-                                            className="h-[38px] w-9 flex items-center justify-center bg-blue-600 text-white rounded-lg active:scale-95 transition-transform shadow-sm">
+                                            className="h-[38px] w-9 flex items-center justify-center bg-blue-600 text-white rounded-lg active:scale-95 transition-transform shadow-sm" title="새로고침">
                                             <div className={loading ? 'animate-spin' : ''} style={{ display: 'flex' }}>
                                                 <Icon name="refresh-cw" size={14} />
                                             </div>
+                                        </button>
+                                        <button onClick={handleBatchDelete} disabled={selectedGroupKeys.size === 0}
+                                            className="h-[38px] px-2.5 flex items-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-lg active:scale-95 transition-all text-xs font-bold disabled:opacity-40 disabled:scale-100 shrink-0" title="선택 항목 일괄 삭제">
+                                            <Icon name="trash-2" size={14} />
+                                            {selectedGroupKeys.size > 0 && <span>({selectedGroupKeys.size})</span>}
                                         </button>
                                     </div>
                                 </div>
@@ -1408,8 +1491,13 @@
                                             </div>
                                         ) : paginatedGroups.map((r, idx) => (
                                             <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-2 py-2.5 active:bg-blue-50/50 transition-colors gap-2">
-                                                {/* 연번 */}
-                                                <span className="text-xs font-black text-slate-400 w-5 shrink-0 text-center">{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
+                                                {/* 체크박스 & 연번 */}
+                                                <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                                                    <input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600"
+                                                        checked={selectedGroupKeys.has(getGroupKey(r))}
+                                                        onChange={() => toggleSelectGroup(getGroupKey(r))} />
+                                                    <span className="text-xs font-black text-slate-400 w-4 text-center">{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
+                                                </div>
 
                                                 {/* 업체명 */}
                                                 <div className="flex-1 min-w-0">
@@ -1453,7 +1541,12 @@
                                         <table className="w-full text-sm border-collapse min-w-[900px]">
                                             <thead>
                                                 <tr className="bg-slate-50 text-xs font-black text-slate-500 uppercase tracking-wider border-b-2 border-slate-200">
-                                                    <th className="pl-5 pr-2 py-3 text-center w-14">#</th>
+                                                    <th className="pl-5 pr-2 py-3 text-center w-14">
+                                                        <input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 align-middle"
+                                                            checked={isAllPaginatedSelected}
+                                                            onChange={e => toggleSelectAllPaginated(e.target.checked)}
+                                                            title="현재 페이지 전체 선택" />
+                                                    </th>
                                                     <th className="px-3 py-3 text-center w-[180px]">제목(업체명)</th>
                                                     <th className="px-3 py-3 text-center w-[80px]">썸네일</th>
                                                     <th className="px-3 py-3 text-center w-[150px]">촬영일시</th>
@@ -1479,7 +1572,14 @@
                                                     </tr>
                                                         ) : paginatedGroups.map((r, idx) => (
                                                     <tr key={idx} className="border-b border-slate-100 hover:bg-blue-50/30 transition-colors">
-                                                        <td className="pl-5 pr-2 py-3 text-center text-xs font-bold text-slate-400">{(currentPage - 1) * PAGE_SIZE + idx + 1}</td>
+                                                         <td className="pl-5 pr-2 py-3 text-center text-xs font-bold text-slate-400">
+                                                             <div className="flex items-center justify-center gap-1.5">
+                                                                 <input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600 align-middle"
+                                                                     checked={selectedGroupKeys.has(getGroupKey(r))}
+                                                                     onChange={() => toggleSelectGroup(getGroupKey(r))} />
+                                                                 <span>{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
+                                                             </div>
+                                                         </td>
                                                         <td className="px-3 py-3 text-center">
                                                             <div className="font-black text-slate-700 text-sm">
                                                                 {r.bizNumber || '-'}

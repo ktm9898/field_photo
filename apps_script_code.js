@@ -429,53 +429,58 @@ function handleUpdateMemo(data) {
   }
 }
 
-// ── 사진 삭제 ───────────────────────────────────────────────
+// ── 사진 삭제 (단일 및 다중 지원) ───────────────────────────────
 function handleDeletePhoto(data) {
+  return handleDeletePhotos(data);
+}
+
+function handleDeletePhotos(data) {
   const lock = LockService.getScriptLock();
   try {
     lock.waitLock(15000);
     
-    if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 누락되었습니다.' });
-    
-    // 1) 구글 드라이브에서 파일 삭제 (휴지통 이동)
-    try {
-      const file = DriveApp.getFileById(data.fileId);
-      file.setTrashed(true);
-    } catch (fErr) {
-      console.warn('Drive file delete warning:', fErr.toString());
+    let fileIds = data.fileIds;
+    if (!fileIds && data.fileId) fileIds = [data.fileId];
+    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
+      return jsonResponse({ success: false, error: '삭제할 파일 ID가 없습니다.' });
     }
+    
+    const idSet = new Set(fileIds.map(function(id) { return String(id).trim(); }));
 
-    // 2) 구글 시트에서 해당 행 삭제
+    // 1) 구글 드라이브에서 파일들 삭제 (휴지통 이동)
+    fileIds.forEach(function(fId) {
+      try {
+        var file = DriveApp.getFileById(fId);
+        file.setTrashed(true);
+      } catch (fErr) {
+        console.warn('Drive file delete warning:', fId, fErr.toString());
+      }
+    });
+
+    // 2) 구글 시트에서 해당 행들 삭제 (역순 행 삭제로 인덱스 뒤틀림 방지)
     const sheet = getSheet();
     if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
 
     const rows = sheet.getDataRange().getValues();
     const headers = rows[0];
-    const fileIdIdx = headers.findIndex(h => String(h).includes('ID') || String(h).includes('id'));
+    const fileIdIdx = headers.findIndex(function(h) {
+      return String(h).includes('ID') || String(h).includes('id');
+    });
 
-    if (fileIdIdx === -1) {
-      throw new Error('시트에서 사진 ID 컬럼을 찾을 수 없습니다.');
-    }
-
-    const searchId = String(data.fileId).trim();
-    let targetRow = -1;
-
-    for (let i = 1; i < rows.length; i++) {
-      if (String(rows[i][fileIdIdx]).trim() === searchId) {
-        targetRow = i + 1;
-        break;
+    if (fileIdIdx !== -1) {
+      for (let i = rows.length - 1; i >= 1; i--) {
+        const rowFileId = String(rows[i][fileIdIdx]).trim();
+        if (idSet.has(rowFileId)) {
+          sheet.deleteRow(i + 1);
+        }
       }
-    }
-
-    if (targetRow !== -1) {
-      sheet.deleteRow(targetRow);
       SpreadsheetApp.flush();
     }
     
-    return jsonResponse({ success: true });
+    return jsonResponse({ success: true, count: fileIds.length });
     
   } catch (err) {
-    console.error('Delete Photo Error:', err.toString());
+    console.error('Delete Photos Error:', err.toString());
     return jsonResponse({ success: false, error: '사진 삭제 오류: ' + err.toString() });
   } finally {
     lock.releaseLock();
