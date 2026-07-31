@@ -1284,7 +1284,7 @@
                                     </div>
                                     <div className="flex gap-1 shrink-0">
                                         <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer })}
-                                            className="h-[38px] px-2.5 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
+                                            className="h-[38px] px-3 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
                                             조회
                                         </button>
                                         <button onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -1302,9 +1302,13 @@
                                             </div>
                                         </button>
                                         <button type="button" onClick={handleBatchDelete} disabled={selectedGroupKeys.size === 0}
-                                            className="h-[38px] px-2.5 flex items-center gap-1 bg-red-50 border border-red-200 text-red-600 rounded-lg active:scale-95 transition-all text-xs font-bold disabled:opacity-40 disabled:scale-100 shrink-0" title="선택 항목 삭제">
+                                            className="h-[38px] w-9 flex items-center justify-center bg-red-50 border border-red-200 text-red-600 rounded-lg active:scale-95 transition-all disabled:opacity-40 disabled:scale-100 shrink-0 relative" title="선택 항목 삭제">
                                             <Icon name="trash-2" size={14} />
-                                            <span>{selectedGroupKeys.size > 0 ? `삭제(${selectedGroupKeys.size})` : '삭제'}</span>
+                                            {selectedGroupKeys.size > 0 && (
+                                                <span className="absolute -top-1.5 -right-1.5 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-sm">
+                                                    {selectedGroupKeys.size}
+                                                </span>
+                                            )}
                                         </button>
                                     </div>
                                 </div>
