@@ -153,6 +153,12 @@ function doPost(e) {
       return handleDeletePhotos(data);
     }
 
+    // 8) 개인 비밀번호 일괄 변경 (촬영자 기준)
+    if (data.action === 'updateUserPassword') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleUpdateUserPassword(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -358,6 +364,49 @@ function handleGetMyPhotos(data) {
 
   records.reverse(); // 최신순
   return jsonResponse({ success: true, data: records, total: records.length });
+}
+
+// ── 개인 비밀번호 일괄 변경 (촬영자 이름 기준) ───────────────
+function handleUpdateUserPassword(data) {
+  const photographer = (data.photographer || '').trim();
+  const oldPw = (data.oldPw || '').trim();
+  const newPw = (data.newPw || '').trim();
+
+  if (!photographer) return jsonResponse({ success: false, error: '촬영자 이름이 필요합니다.' });
+  if (!newPw) return jsonResponse({ success: false, error: '새 비밀번호를 입력해주세요.' });
+
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ success: true, updatedCount: 0 });
+
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    const range = sheet.getRange(2, 1, lastRow - 1, 12);
+    const values = range.getValues();
+    let updatedCount = 0;
+
+    for (let i = 0; i < values.length; i++) {
+      const rowPhotographer = String(values[i][2] || '').trim();
+      const rowPw = String(values[i][11] || '').trim();
+
+      // 해당 촬영자의 기존 사진 비밀번호를 새 비밀번호로 업데이트 (기존 비번이 일치하거나 비어있는 경우)
+      if (rowPhotographer === photographer && (!oldPw || rowPw === oldPw || !rowPw)) {
+        const rowIndex = i + 2;
+        sheet.getRange(rowIndex, 12).setValue(newPw);
+        updatedCount++;
+      }
+    }
+    SpreadsheetApp.flush();
+    return jsonResponse({ success: true, updatedCount: updatedCount });
+  } catch (err) {
+    console.error('Update Password Error:', err.toString());
+    return jsonResponse({ success: false, error: '비밀번호 변경 오류: ' + err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── 파일 데이터를 Base64로 가져오기 (다운로드용 중계) ────────
