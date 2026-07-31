@@ -604,6 +604,12 @@
                                                         <Icon name="download" size={14} />
                                                         <span className="hidden md:inline">다운로드</span>
                                                     </button>
+
+                                                    <button type="button" onClick={(e) => { e.stopPropagation(); handleDeletePhotoClick(p); }} disabled={isSaving}
+                                                        className="w-9 h-9 flex items-center justify-center text-xs font-bold bg-red-50 text-red-600 border border-red-100 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50 shrink-0"
+                                                        title="삭제">
+                                                        <Icon name="trash-2" size={14} />
+                                                    </button>
                                                 </div>
                                             )}
                                         </div>
