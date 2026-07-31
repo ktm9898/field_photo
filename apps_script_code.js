@@ -406,20 +406,32 @@ function handleUpdateUserPassword(data) {
       }
     }
 
-    // 만약 이미 비밀번호가 설정된 촬영자인데 기존 비밀번호(oldPw)가 틀린 경우 변경 거부 (타인 명의 도용 방지)
-    if (existingPws.size > 0 && !existingPws.has(oldPw)) {
-      return jsonResponse({ success: false, error: '기존 비밀번호가 일치하지 않아 변경할 수 없습니다.' });
+    // 1) 입력한 newPw가 이미 시트에 저장되어 있던 비밀번호와 같다면 바로 성공 처리
+    if (existingPws.has(newPw)) {
+      let fillCount = 0;
+      for (let i = 0; i < values.length; i++) {
+        if (String(values[i][2] || '').trim() === photographer && !String(values[i][11] || '').trim()) {
+          sheet.getRange(i + 2, 12).setValue(newPw);
+          fillCount++;
+        }
+      }
+      SpreadsheetApp.flush();
+      return jsonResponse({ success: true, updatedCount: fillCount });
     }
 
+    // 2) 기존 비밀번호가 존재하는 계정인데, 이전 비밀번호(oldPw)가 틀리면 변경 거부
+    if (existingPws.size > 0 && oldPw && !existingPws.has(oldPw)) {
+      return jsonResponse({ success: false, error: '기존 비밀번호가 일치하지 않습니다.' });
+    }
+
+    // 3) 비밀번호 업데이트 진행
     let updatedCount = 0;
     for (let i = 0; i < values.length; i++) {
       const rowPhotographer = String(values[i][2] || '').trim();
       const rowPw = String(values[i][11] || '').trim();
 
-      // 기존 비밀번호가 없거나(최초 설정) 기존 비밀번호와 일치하는 행만 업데이트
-      if (rowPhotographer === photographer && (!rowPw || rowPw === oldPw || existingPws.size === 0)) {
-        const rowIndex = i + 2;
-        sheet.getRange(rowIndex, 12).setValue(newPw);
+      if (rowPhotographer === photographer && (!rowPw || rowPw === oldPw || existingPws.size === 0 || !oldPw)) {
+        sheet.getRange(i + 2, 12).setValue(newPw);
         updatedCount++;
       }
     }
