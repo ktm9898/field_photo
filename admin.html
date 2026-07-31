@@ -155,12 +155,13 @@
             body > *:not(#print-area) { display: none !important; }
             #print-area { display: block !important; }
             .print-page {
-                width: 100%;
-                min-height: calc(100vh - 20mm);
-                padding: 5mm 0;
+                width: 190mm;   /* A4 폭(210mm) - 좌우 여백(10mm×2) */
+                height: 277mm;  /* A4 높이(297mm) - 상하 여백(10mm×2) */
+                padding: 0;
                 box-sizing: border-box;
                 display: flex;
                 flex-direction: column;
+                overflow: hidden;
             }
             .print-page-break { page-break-after: always; break-after: page; }
             .print-header {
@@ -169,7 +170,7 @@
                 justify-content: space-between;
                 border-bottom: 3px solid #1e293b;
                 padding-bottom: 6px;
-                margin-bottom: 10px;
+                margin-bottom: 8px;
                 flex-shrink: 0;
             }
             .print-title {
@@ -184,11 +185,14 @@
                 flex: 1;
                 display: flex;
                 flex-direction: column;
-                gap: 5mm;
+                gap: 4mm;
+                min-height: 0;
+                overflow: hidden;
             }
             .print-layout-stack .print-photo-cell {
                 flex: 1;
                 min-height: 0;
+                overflow: hidden;
             }
             .print-layout-grid {
                 flex: 1;
@@ -196,6 +200,8 @@
                 grid-template-columns: 1fr 1fr;
                 grid-template-rows: 1fr 1fr;
                 gap: 4mm;
+                min-height: 0;
+                overflow: hidden;
             }
             .print-photo-cell {
                 display: flex;
@@ -208,6 +214,7 @@
                 max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
+                display: block;
             }
         }
     </style>
