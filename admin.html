@@ -401,7 +401,7 @@
         };
 
         // ── 사진 갤러리 모달 ──
-        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle, memoUpdater }) => {
+        const PhotoGalleryModal = ({ group, onClose, onDownload, onDownloadSingle, memoUpdater, photoDeleter }) => {
             console.log('PhotoGalleryModal Rendered. memoUpdater type:', typeof memoUpdater);
             if (!group || !group.photos) return null;
 
@@ -416,6 +416,22 @@
             const handleMemoClick = (photo) => {
                 setEditMemoId(photo.fileId);
                 setMemoValue(photo.memo || '');
+            };
+
+            const handleDeletePhotoClick = async (photo) => {
+                if (!confirm('이 사진을 정말 삭제하시겠습니까?\n(구글 드라이브 휴지통 이동 및 구글 시트에서 삭제됩니다)')) return;
+                if (typeof photoDeleter !== 'function') {
+                    alert('오류: 삭제 처리 함수가 연결되지 않았습니다. 페이지를 새로고침(F5) 해주세요.');
+                    return;
+                }
+                try {
+                    setIsSaving(true);
+                    await photoDeleter(photo.fileId);
+                } catch (err) {
+                    console.error('handleDeletePhotoClick error:', err);
+                } finally {
+                    setIsSaving(false);
+                }
             };
 
             const handleSaveMemo = async (fileId) => {
@@ -813,6 +829,65 @@
                     console.error('Memo update error:', err);
                     const msg = err.name === 'AbortError' ? '시간 초과 (네트워크 응답 없음)' : err.message;
                     setToast({ message: '메모 저장 실패: ' + msg, type: 'error' });
+                    return false;
+                }
+            }, [photoModal]);
+
+            const deletePhoto = useCallback(async (fileId) => {
+                const pw = getPw();
+                if (!pw) {
+                    setToast({ message: '관리자 비밀번호가 필요합니다.', type: 'error' });
+                    return false;
+                }
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); 
+                
+                try {
+                    const params = new URLSearchParams();
+                    params.append('action', 'deletePhoto');
+                    params.append('key', API_SECRET);
+                    params.append('pw', pw);
+                    params.append('fileId', fileId);
+                    params.append('_t', Date.now()); 
+
+                    const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+
+                    const resp = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors',
+                        signal: controller.signal
+                    });
+                    
+                    clearTimeout(timeoutId);
+                    if (!resp.ok) throw new Error('서버 응답 오류 (' + resp.status + ')');
+                    
+                    const res = await resp.json();
+                    if (res.success) {
+                        // 1. 로컬 레코드 업데이트
+                        setRecords(prev => prev.filter(p => p.fileId !== fileId));
+                        
+                        // 2. 현재 열린 모달 상태 업데이트
+                        if (photoModal) {
+                            const updatedPhotos = photoModal.photos.filter(p => p.fileId !== fileId);
+                            if (updatedPhotos.length === 0) {
+                                setPhotoModal(null);
+                            } else {
+                                setPhotoModal(prev => ({
+                                    ...prev,
+                                    photos: updatedPhotos
+                                }));
+                            }
+                        }
+                        setToast({ message: '사진이 삭제되었습니다.', type: 'success' });
+                        return true;
+                    } else {
+                        throw new Error(res.error || '삭제 실패');
+                    }
+                } catch (err) {
+                    clearTimeout(timeoutId);
+                    console.error('deletePhoto error:', err);
+                    const msg = err.name === 'AbortError' ? '시간 초과' : err.message;
+                    setToast({ message: '삭제 실패: ' + msg, type: 'error' });
                     return false;
                 }
             }, [photoModal]);
@@ -1512,6 +1587,7 @@
                                     onDownload={downloadGroup}
                                     onDownloadSingle={triggerDownload}
                                     memoUpdater={updateMemo}
+                                    photoDeleter={deletePhoto}
                                 />
                             )}
                         </div>

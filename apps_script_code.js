@@ -147,6 +147,13 @@ function doPost(e) {
       return handleUpdateMemo(data);
     }
 
+    // 7) 사진 삭제
+    if (data.action === 'deletePhoto') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      if (data.pw !== ADMIN_PW) return jsonResponse({ success: false, error: '비밀번호가 틀렸습니다.' });
+      return handleDeletePhoto(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -417,6 +424,59 @@ function handleUpdateMemo(data) {
   } catch (err) {
     console.error('Update Memo Error:', err.toString());
     return jsonResponse({ success: false, error: '메모 업데이트 오류: ' + err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── 사진 삭제 ───────────────────────────────────────────────
+function handleDeletePhoto(data) {
+  const lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000);
+    
+    if (!data.fileId) return jsonResponse({ success: false, error: '파일 ID가 누락되었습니다.' });
+    
+    // 1) 구글 드라이브에서 파일 삭제 (휴지통 이동)
+    try {
+      const file = DriveApp.getFileById(data.fileId);
+      file.setTrashed(true);
+    } catch (fErr) {
+      console.warn('Drive file delete warning:', fErr.toString());
+    }
+
+    // 2) 구글 시트에서 해당 행 삭제
+    const sheet = getSheet();
+    if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+    const rows = sheet.getDataRange().getValues();
+    const headers = rows[0];
+    const fileIdIdx = headers.findIndex(h => String(h).includes('ID') || String(h).includes('id'));
+
+    if (fileIdIdx === -1) {
+      throw new Error('시트에서 사진 ID 컬럼을 찾을 수 없습니다.');
+    }
+
+    const searchId = String(data.fileId).trim();
+    let targetRow = -1;
+
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][fileIdIdx]).trim() === searchId) {
+        targetRow = i + 1;
+        break;
+      }
+    }
+
+    if (targetRow !== -1) {
+      sheet.deleteRow(targetRow);
+      SpreadsheetApp.flush();
+    }
+    
+    return jsonResponse({ success: true });
+    
+  } catch (err) {
+    console.error('Delete Photo Error:', err.toString());
+    return jsonResponse({ success: false, error: '사진 삭제 오류: ' + err.toString() });
   } finally {
     lock.releaseLock();
   }
