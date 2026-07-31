@@ -376,7 +376,7 @@ function handleGetMyPhotos(data) {
   return jsonResponse({ success: true, data: records, total: records.length });
 }
 
-// ── 개인 비밀번호 일괄 변경 (촬영자 이름 기준) ───────────────
+// ── 개인 비밀번호 일괄 변경 (촬영자 이름 기준 - 기존 비번 검증 포함) ───────────────
 function handleUpdateUserPassword(data) {
   const photographer = (data.photographer || '').trim();
   const oldPw = (data.oldPw || '').trim();
@@ -396,14 +396,28 @@ function handleUpdateUserPassword(data) {
     lock.waitLock(15000);
     const range = sheet.getRange(2, 1, lastRow - 1, 12);
     const values = range.getValues();
-    let updatedCount = 0;
 
+    // 해당 촬영자의 기존 비밀번호 목록 확인
+    let existingPws = new Set();
+    for (let i = 0; i < values.length; i++) {
+      if (String(values[i][2] || '').trim() === photographer) {
+        const pw = String(values[i][11] || '').trim();
+        if (pw) existingPws.add(pw);
+      }
+    }
+
+    // 만약 이미 비밀번호가 설정된 촬영자인데 기존 비밀번호(oldPw)가 틀린 경우 변경 거부 (타인 명의 도용 방지)
+    if (existingPws.size > 0 && !existingPws.has(oldPw)) {
+      return jsonResponse({ success: false, error: '기존 비밀번호가 일치하지 않아 변경할 수 없습니다.' });
+    }
+
+    let updatedCount = 0;
     for (let i = 0; i < values.length; i++) {
       const rowPhotographer = String(values[i][2] || '').trim();
       const rowPw = String(values[i][11] || '').trim();
 
-      // 해당 촬영자의 기존 사진 비밀번호를 새 비밀번호로 업데이트 (기존 비번이 일치하거나 비어있는 경우)
-      if (rowPhotographer === photographer && (!oldPw || rowPw === oldPw || !rowPw)) {
+      // 기존 비밀번호가 없거나(최초 설정) 기존 비밀번호와 일치하는 행만 업데이트
+      if (rowPhotographer === photographer && (!rowPw || rowPw === oldPw || existingPws.size === 0)) {
         const rowIndex = i + 2;
         sheet.getRange(rowIndex, 12).setValue(newPw);
         updatedCount++;
