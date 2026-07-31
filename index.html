@@ -775,11 +775,6 @@
         </div>
 
         <div class="field-group">
-            <label class="field-label">촬영자<span class="required-dot">*</span></label>
-            <input type="text" id="input-photographer" class="field-input" placeholder="이름 입력" maxlength="20">
-        </div>
-
-        <div class="field-group">
             <label class="field-label">메모</label>
             <textarea id="input-memo" class="field-input" placeholder="예: 정문 사진, 간판 상태 양호 등"></textarea>
         </div>
@@ -1075,10 +1070,6 @@
             // GPS 뱃지
             updateGpsBadge();
 
-            // 촬영자 자동 채우기
-            const savedName = localStorage.getItem('photographer_name') || '';
-            document.getElementById('input-photographer').value = savedName;
-
             // 업체번호 자동 세팅 (마커에서 온 경우)
             if (pendingBizNumber) {
                 document.getElementById('input-biz').value = pendingBizNumber;
@@ -1134,18 +1125,19 @@
         // ─────────────────────────────────────────────
         async function uploadAllPhotos() {
             const bizNumber = document.getElementById('input-biz').value.trim();
-            const photographer = document.getElementById('input-photographer').value.trim();
+            const photographer = localStorage.getItem('photographer_name') || '';
             const email = localStorage.getItem('photographer_email') || '';
             const userPw = localStorage.getItem('photographer_pw') || '';
             const memo = document.getElementById('input-memo').value.trim();
 
-            if (!bizNumber) { showToast('제목(업체명)을 입력해주세요.', 'error'); return; }
-            if (!photographer) { showToast('촬영자 이름을 입력해주세요.', 'error'); return; }
-            if (capturedPhotos.length === 0) { showToast('사진이 없습니다.', 'error'); return; }
+            if (!photographer || !userPw) {
+                showToast('촬영자 설정이 필요합니다. 이름을 먼저 설정해주세요.', 'error');
+                showPhotographerModal();
+                return;
+            }
 
-            // 이름 저장
-            localStorage.setItem('photographer_name', photographer);
-            document.getElementById('photographer-name').textContent = photographer;
+            if (!bizNumber) { showToast('제목(업체명)을 입력해주세요.', 'error'); return; }
+            if (capturedPhotos.length === 0) { showToast('사진이 없습니다.', 'error'); return; }
 
             const total = capturedPhotos.length;
             setUploadUiLoading(true, 1, total);
