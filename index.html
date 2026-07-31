@@ -1540,8 +1540,8 @@
             document.getElementById('photographer-name').textContent = name;
             document.getElementById('photographer-overlay').classList.add('hidden');
 
-            // 비밀번호 변경 시 기존 시트 비밀번호 일괄 동기화
-            if (oldName === name && oldPw && oldPw !== pw) {
+            // 비밀번호 변경 또는 최초 설정 시 기존 시트 비밀번호 일괄 동기화
+            if (oldName === name && oldPw !== pw) {
                 showToast('기존 사진 비밀번호 업데이트 중...', 'info');
                 try {
                     const resp = await fetch(APPS_SCRIPT_URL, {

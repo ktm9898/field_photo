@@ -341,10 +341,20 @@ function handleGetMyPhotos(data) {
     const rowPhotographer = String(row[2] || '').trim();
     const rowUserPw = String(row[11] || '').trim();
     const rowEmail = String(row[10] || '').trim();
-    // 촬영자 이름과 개인 비밀번호가 모두 일치하는 경우에만 포함 (보안 강화)
-    if (rowPhotographer === photographer && rowUserPw === userPw) {
+    // 촬영자 이름이 일치하고, (비밀번호가 일치하거나 기존에 비밀번호가 없던 행)인 경우 포함
+    if (rowPhotographer === photographer && (!rowUserPw || rowUserPw === userPw)) {
       const photoUrl = String(row[6] || '');
       if (!photoUrl) continue;
+
+      // 기존에 비밀번호가 비어있었던 행이면 새 비밀번호로 자동으로 업데이트해줌
+      if (!rowUserPw && userPw) {
+        try {
+          sheet.getRange(idx + 2, 12).setValue(userPw);
+        } catch (e) {
+          console.warn('Auto set userPw failed:', e);
+        }
+      }
+
       records.push({
         datetime:     row[0] ? String(row[0]) : '',
         bizNumber:    String(row[1] || ''),
@@ -357,7 +367,7 @@ function handleGetMyPhotos(data) {
         memo:         String(row[8] || ''),
         fileName:     String(row[9] || ''),
         email:        rowEmail,
-        userPw:       rowUserPw
+        userPw:       userPw
       });
     }
   }
