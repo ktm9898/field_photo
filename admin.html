@@ -1460,9 +1460,9 @@
                                 </div>
 
                                 <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                                    <div className="px-3 md:px-5 py-3 border-b border-slate-100 flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <input type="checkbox" className="md:hidden w-4 h-4 cursor-pointer accent-blue-600 shrink-0 ml-1"
+                                            <input type="checkbox" className="md:hidden w-4 h-4 cursor-pointer accent-blue-600 shrink-0"
                                                 checked={isAllPaginatedSelected}
                                                 onChange={e => toggleSelectAllPaginated(e.target.checked)}
                                                 title="현재 페이지 전체 선택" />
@@ -1487,9 +1487,9 @@
                                                 </div>
                                             </div>
                                         ) : paginatedGroups.map((r, idx) => (
-                                            <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-2 py-2.5 active:bg-blue-50/50 transition-colors gap-2">
+                                            <div key={idx} className="flex items-center border-b border-slate-100 last:border-0 px-3 py-2.5 active:bg-blue-50/50 transition-colors gap-2">
                                                 {/* 체크박스 & 연번 */}
-                                                <div className="flex items-center gap-1.5 shrink-0 pl-1">
+                                                <div className="flex items-center gap-1.5 shrink-0">
                                                     <input type="checkbox" className="w-4 h-4 cursor-pointer accent-blue-600"
                                                         checked={selectedGroupKeys.has(getGroupKey(r))}
                                                         onChange={() => toggleSelectGroup(getGroupKey(r))} />
