@@ -170,7 +170,8 @@ function doGet(e) {
 }
 
 // ── 머릿글 자동 생성 ─────────────────────────────────────────
-const HEADERS = ['촬영일시', '제목(업체명)', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명', '이메일'];
+// ── 머릿글 자동 생성 ─────────────────────────────────────────
+const HEADERS = ['촬영일시', '제목(업체명)', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명', '이메일', '비밀번호'];
 
 function ensureHeaders(sheet) {
   // 시트가 완전히 비어 있을 때만 머릿글 추가
@@ -222,7 +223,7 @@ function handleUpload(data) {
   const fileId  = file.getId();
   const fileUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
-  // 시트에 메타데이터 기록 (11열)
+  // 시트에 메타데이터 기록 (12열)
   sheet.appendRow([
     datetimeStr,                         // A: 촬영일시
     data.bizNumber || '',                // B: 업체번호
@@ -234,7 +235,8 @@ function handleUpload(data) {
     fileId,                              // H: 사진파일ID
     data.memo || '',                     // I: 메모
     fileName,                            // J: 파일명
-    data.email || ''                     // K: 이메일
+    data.email || '',                    // K: 이메일
+    data.userPw || data.password || ''   // L: 비밀번호
   ]);
 
   return jsonResponse({
@@ -253,7 +255,7 @@ function handleGetAll() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
   const records = values.map((row, idx) => ({
     rowIndex:     idx + 2,
     datetime:     row[0] ? String(row[0]) : '',
@@ -266,7 +268,8 @@ function handleGetAll() {
     fileId:       String(row[7] || ''),
     memo:         String(row[8] || ''),
     fileName:     String(row[9] || ''),
-    email:        String(row[10] || '')
+    email:        String(row[10] || ''),
+    userPw:       String(row[11] || '')
   })).filter(r => r.photoUrl); // URL 없는 행 제외
 
   records.reverse(); // 최신순
@@ -312,11 +315,12 @@ function handleSendEmail(data) {
   return jsonResponse({ success: true });
 }
 
-// ── 내 사진 조회 (촬영자 이름 + 이메일로 필터) ───────────────
+// ── 내 사진 조회 (촬영자 이름 + 개인 비밀번호로 필터) ───────────────
 function handleGetMyPhotos(data) {
   const photographer = (data.photographer || '').trim();
-  const email = (data.email || '').trim();
+  const userPw = (data.userPw || data.password || data.pw || '').trim();
   if (!photographer) return jsonResponse({ success: false, error: '촬영자 이름이 필요합니다.' });
+  if (!userPw) return jsonResponse({ success: false, error: '개인 비밀번호가 필요합니다.' });
 
   const sheet = getSheet();
   if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
@@ -324,14 +328,15 @@ function handleGetMyPhotos(data) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 11).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
   const records = [];
   for (let idx = 0; idx < values.length; idx++) {
     const row = values[idx];
     const rowPhotographer = String(row[2] || '').trim();
+    const rowUserPw = String(row[11] || '').trim();
     const rowEmail = String(row[10] || '').trim();
-    // 촬영자 이름과 이메일이 모두 일치하는 경우에만 포함 (보안 강화)
-    if (rowPhotographer === photographer && rowEmail === email) {
+    // 촬영자 이름과 개인 비밀번호가 모두 일치하는 경우에만 포함 (보안 강화)
+    if (rowPhotographer === photographer && rowUserPw === userPw) {
       const photoUrl = String(row[6] || '');
       if (!photoUrl) continue;
       records.push({
@@ -345,11 +350,13 @@ function handleGetMyPhotos(data) {
         fileId:       String(row[7] || ''),
         memo:         String(row[8] || ''),
         fileName:     String(row[9] || ''),
-        email:        rowEmail
+        email:        rowEmail,
+        userPw:       rowUserPw
       });
     }
   }
 
+  records.reverse(); // 최신순
   return jsonResponse({ success: true, data: records, total: records.length });
 }
 

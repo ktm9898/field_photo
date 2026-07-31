@@ -730,10 +730,14 @@
     <div id="photographer-overlay" class="hidden">
         <div id="photographer-modal">
             <h2>촬영자 설정</h2>
-            <p>이름을 입력하면 이후 자동으로 적용됩니다</p>
+            <p>이름과 개인 비밀번호를 입력해주세요</p>
             <div class="field-group">
                 <label class="field-label">이름<span class="required-dot">*</span></label>
                 <input type="text" id="photographer-input" class="field-input" placeholder="예: 홍길동" maxlength="20">
+            </div>
+            <div class="field-group">
+                <label class="field-label">개인 비밀번호<span class="required-dot">*</span></label>
+                <input type="password" id="photographer-pw-input" class="field-input" placeholder="본인 사진 확인용 비밀번호" maxlength="20">
             </div>
             <div class="field-group">
                 <label class="field-label">이메일 (선택)</label>
@@ -1132,6 +1136,7 @@
             const bizNumber = document.getElementById('input-biz').value.trim();
             const photographer = document.getElementById('input-photographer').value.trim();
             const email = localStorage.getItem('photographer_email') || '';
+            const userPw = localStorage.getItem('photographer_pw') || '';
             const memo = document.getElementById('input-memo').value.trim();
 
             if (!bizNumber) { showToast('제목(업체명)을 입력해주세요.', 'error'); return; }
@@ -1168,6 +1173,7 @@
                         bizNumber,
                         photographer,
                         email,
+                        userPw,
                         memo,
                         lat: gps.lat,
                         lng: gps.lng,
@@ -1196,38 +1202,10 @@
                 }
             }
 
-            if (successCount > 0 && email && uploadedFileIds.length > 0) {
-                setUploadUiLoading(true, '이메일', '발송'); // 진행상태 창 변경
-                document.getElementById('upload-progress-text').textContent = '이메일을 발송하는 중...';
-                try {
-                    const mailPayload = {
-                        action: 'sendEmail', key: API_SECRET, pw: '', // 프론트는 pw 모름 (Apps Script가 pw 검사 안하도록 배포되어 있음)
-                        bizNumber, email, fileIds: uploadedFileIds
-                    };
-                    const mailRes = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST', body: JSON.stringify(mailPayload)
-                    });
-                    const mailResult = await mailRes.json();
-                    setUploadUiLoading(false);
-                    
-                    if (mailResult.success) {
-                        closeBottomSheet();
-                        showToast(successCount + '장 업로드 및 메일 발송 완료! (' + bizNumber + ')', 'success');
-                    } else {
-                        closeBottomSheet();
-                        showToast('업로드성공 (메일 발송 실패: ' + mailResult.error + ')', 'error');
-                    }
-                } catch(e) {
-                    setUploadUiLoading(false);
-                    closeBottomSheet();
-                    showToast('업로드성공 (메일 예외: ' + e.message + ')', 'error');
-                }
-            } else if (successCount > 0) {
-                setUploadUiLoading(false);
+            setUploadUiLoading(false);
+            if (successCount > 0) {
                 closeBottomSheet();
                 showToast(successCount + '장 업로드 완료! (' + bizNumber + ')', 'success');
-            } else {
-                setUploadUiLoading(false);
             }
         }
 
@@ -1299,8 +1277,8 @@
         // ─────────────────────────────────────────────
         async function loadMyMarkers() {
             const photographer = localStorage.getItem('photographer_name') || '';
-            const email = localStorage.getItem('photographer_email') || '';
-            if (!photographer) return;
+            const userPw = localStorage.getItem('photographer_pw') || '';
+            if (!photographer || !userPw) return;
 
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {
@@ -1309,7 +1287,7 @@
                         action: 'getMyPhotos',
                         key: API_SECRET,
                         photographer: photographer,
-                        email: email
+                        userPw: userPw
                     })
                 });
                 const result = await resp.json();
@@ -1538,17 +1516,22 @@
         // ─────────────────────────────────────────────
         function showPhotographerModal() {
             const saved = localStorage.getItem('photographer_name') || '';
+            const savedPw = localStorage.getItem('photographer_pw') || '';
             const savedEmail = localStorage.getItem('photographer_email') || '';
             document.getElementById('photographer-input').value = saved;
+            document.getElementById('photographer-pw-input').value = savedPw;
             document.getElementById('photographer-email-input').value = savedEmail;
             document.getElementById('photographer-overlay').classList.remove('hidden');
         }
 
         function savePhotographer() {
             const name = document.getElementById('photographer-input').value.trim();
+            const pw = document.getElementById('photographer-pw-input').value.trim();
             const email = document.getElementById('photographer-email-input').value.trim();
             if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
+            if (!pw) { showToast('개인 비밀번호를 입력해주세요.', 'error'); return; }
             localStorage.setItem('photographer_name', name);
+            localStorage.setItem('photographer_pw', pw);
             localStorage.setItem('photographer_email', email);
             document.getElementById('photographer-name').textContent = name;
             document.getElementById('photographer-overlay').classList.add('hidden');

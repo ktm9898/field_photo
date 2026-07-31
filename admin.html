@@ -797,6 +797,7 @@
             const getPw = () => sessionStorage.getItem('fp_admin_pw') || '';
             const getPersonalInfo = () => ({
                 name: localStorage.getItem('photographer_name') || '',
+                pw: localStorage.getItem('photographer_pw') || '',
                 email: localStorage.getItem('photographer_email') || ''
             });
 
@@ -919,7 +920,7 @@
                     setShowLogin(true);
                     return false;
                 }
-                if (targetMode === 'personal' && !personal.name) {
+                if (targetMode === 'personal' && (!personal.name || !personal.pw)) {
                     setIsAuth(false);
                     setShowLogin(true);
                     return false;
@@ -929,7 +930,7 @@
                 try {
                     const payload = targetMode === 'master' 
                         ? { action: 'getAll', key: API_SECRET, pw, _t: Date.now() }
-                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, email: personal.email, _t: Date.now() };
+                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, userPw: personal.pw, _t: Date.now() };
 
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
