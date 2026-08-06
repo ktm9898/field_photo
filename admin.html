@@ -940,13 +940,24 @@
                 const timeoutId = setTimeout(() => controller.abort(), 30000);
 
                 try {
-                    const payload = targetMode === 'master' 
-                        ? { action: 'getAll', key: API_SECRET, pw, _t: Date.now() }
-                        : { action: 'getMyPhotos', key: API_SECRET, photographer: personal.name, userPw: personal.pw, _t: Date.now() };
+                    const params = new URLSearchParams();
+                    if (targetMode === 'master') {
+                        params.append('action', 'getAll');
+                        params.append('key', API_SECRET);
+                        params.append('pw', pw);
+                    } else {
+                        params.append('action', 'getMyPhotos');
+                        params.append('key', API_SECRET);
+                        params.append('photographer', personal.name);
+                        params.append('userPw', personal.pw);
+                    }
+                    params.append('_t', Date.now());
 
-                    const resp = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(payload),
+                    const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+
+                    const resp = await fetch(url, {
+                        method: 'GET',
+                        mode: 'cors',
                         signal: controller.signal
                     });
                     clearTimeout(timeoutId);

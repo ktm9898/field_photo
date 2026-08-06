@@ -1276,14 +1276,18 @@
             const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             try {
-                const resp = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: 'getMyPhotos',
-                        key: API_SECRET,
-                        photographer: photographer,
-                        userPw: userPw
-                    }),
+                const params = new URLSearchParams();
+                params.append('action', 'getMyPhotos');
+                params.append('key', API_SECRET);
+                params.append('photographer', photographer);
+                params.append('userPw', userPw);
+                params.append('_t', Date.now());
+
+                const url = `${APPS_SCRIPT_URL}?${params.toString()}`;
+
+                const resp = await fetch(url, {
+                    method: 'GET',
+                    mode: 'cors',
                     signal: controller.signal
                 });
                 clearTimeout(timeoutId);
