@@ -330,7 +330,6 @@ function handleGetMyPhotos(data) {
   const photographer = (data.photographer || '').trim();
   const userPw = (data.userPw || data.password || data.pw || '').trim();
   if (!photographer) return jsonResponse({ success: false, error: '촬영자 이름이 필요합니다.' });
-  if (!userPw) return jsonResponse({ success: false, error: '비밀번호가 필요합니다.' });
 
   const sheet = getSheet();
   if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });

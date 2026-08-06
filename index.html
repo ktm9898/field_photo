@@ -1270,7 +1270,7 @@
         async function loadMyMarkers() {
             const photographer = (localStorage.getItem('photographer_name') || '').trim();
             const userPw = (localStorage.getItem('photographer_pw') || '').trim();
-            if (!photographer || !userPw) return;
+            if (!photographer) return;
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000);

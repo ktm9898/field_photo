@@ -928,10 +928,10 @@
                     setShowLogin(true);
                     return { success: false, error: '관리자 비밀번호를 입력해주세요.' };
                 }
-                if (targetMode === 'personal' && (!personal.name || !personal.pw)) {
+                if (targetMode === 'personal' && !personal.name) {
                     setIsAuth(false);
                     setShowLogin(false);
-                    setToast({ message: '저장된 촬영자 정보(이름/비밀번호)가 없습니다. 촬영 페이지에서 본인 정보를 먼저 설정해주세요.', type: 'error' });
+                    setToast({ message: '저장된 촬영자 정보가 없습니다. 촬영 페이지에서 본인 정보를 먼저 설정해주세요.', type: 'error' });
                     return { success: false, error: '저장된 촬영자 정보가 없습니다.' };
                 }
 
