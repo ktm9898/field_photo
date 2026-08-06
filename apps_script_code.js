@@ -112,7 +112,11 @@ function doPost(e) {
     // 1) 관리자 조회 요청
     if (data.action === 'getAll') {
       if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
-      if (data.pw !== ADMIN_PW) return jsonResponse({ success: false, error: '비밀번호가 틀렸습니다.' });
+      const inputPw = String(data.pw || '').trim();
+      const targetPw = String(ADMIN_PW || '').trim();
+      if (!inputPw || inputPw !== targetPw) {
+        return jsonResponse({ success: false, error: '관리자 비밀번호가 일치하지 않습니다.' });
+      }
       return handleGetAll();
     }
 

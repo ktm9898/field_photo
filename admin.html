@@ -358,14 +358,22 @@
         // ── 로그인 ──
         const Login = ({ onLogin }) => {
             const [pw, setPw] = useState('');
-            const [err, setErr] = useState(false);
+            const [err, setErr] = useState('');
             const [loading, setLoading] = useState(false);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
-                setLoading(true); setErr(false);
-                const ok = await onLogin(pw);
-                if (!ok) { setErr(true); setPw(''); }
+                const cleanPw = pw.trim();
+                if (!cleanPw) {
+                    setErr('비밀번호를 입력해 주세요.');
+                    return;
+                }
+                setLoading(true); setErr('');
+                const res = await onLogin(cleanPw);
+                if (!res || !res.success) {
+                    setErr(res && res.error ? res.error : '접속 인증 실패');
+                    setPw('');
+                }
                 setLoading(false);
             };
 
@@ -387,7 +395,7 @@
                                     className={`w-full px-4 py-4 bg-slate-50 border-2 rounded-xl outline-none text-center text-2xl font-black tracking-[0.5em] transition-all ${err ? 'border-red-400 bg-red-50' : 'border-slate-100 focus:border-blue-500 focus:bg-white'}`}
                                     value={pw} onChange={e => setPw(e.target.value)} placeholder="••••••••••"
                                 />
-                                {err && <p className="text-red-500 text-xs font-bold text-center mt-2">비밀번호가 틀렸습니다.</p>}
+                                {err && <p className="text-red-500 text-xs font-bold text-center mt-2">{err}</p>}
                             </div>
                             <button type="submit" disabled={loading}
                                 className="w-full py-4 bg-slate-900 text-white rounded-xl font-black text-sm shadow-lg hover:bg-slate-800 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50">
@@ -794,11 +802,11 @@
             const [showMobileFilters, setShowMobileFilters] = useState(false);
             const [appliedFilter, setAppliedFilter] = useState({});
 
-            const getPw = () => sessionStorage.getItem('fp_admin_pw') || '';
+            const getPw = () => (sessionStorage.getItem('fp_admin_pw') || '').trim();
             const getPersonalInfo = () => ({
-                name: localStorage.getItem('photographer_name') || '',
-                pw: localStorage.getItem('photographer_pw') || '',
-                email: localStorage.getItem('photographer_email') || ''
+                name: (localStorage.getItem('photographer_name') || '').trim(),
+                pw: (localStorage.getItem('photographer_pw') || '').trim(),
+                email: (localStorage.getItem('photographer_email') || '').trim()
             });
 
             const updateMemo = useCallback(async (fileId, newMemo) => {
@@ -911,22 +919,26 @@
 
             const loadData = useCallback(async (mode, forcePw) => {
                 const targetMode = mode || viewMode;
-                const pw = forcePw || getPw();
+                const pw = (forcePw || getPw()).trim();
                 const personal = getPersonalInfo();
 
                 // 모드별 권한 체크
                 if (targetMode === 'master' && !pw) {
                     setIsAuth(false);
                     setShowLogin(true);
-                    return false;
+                    return { success: false, error: '관리자 비밀번호를 입력해주세요.' };
                 }
                 if (targetMode === 'personal' && (!personal.name || !personal.pw)) {
                     setIsAuth(false);
-                    setShowLogin(true);
-                    return false;
+                    setShowLogin(false);
+                    setToast({ message: '저장된 촬영자 정보(이름/비밀번호)가 없습니다. 촬영 페이지에서 본인 정보를 먼저 설정해주세요.', type: 'error' });
+                    return { success: false, error: '저장된 촬영자 정보가 없습니다.' };
                 }
 
                 setLoading(true);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
                 try {
                     const payload = targetMode === 'master' 
                         ? { action: 'getAll', key: API_SECRET, pw, _t: Date.now() }
@@ -934,25 +946,31 @@
 
                     const resp = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        signal: controller.signal
                     });
+                    clearTimeout(timeoutId);
+
                     const data = await resp.json();
                     if (data.success) {
                         setRecords(data.data || []);
                         setIsAuth(true);
                         setShowLogin(false);
                         setViewMode(targetMode);
-                        return true;
+                        return { success: true, data: data.data };
                     } else {
-                        setToast({ message: data.error || '오류 발생', type: 'error' });
+                        const errMsg = data.error || '데이터 로드에 실패했습니다.';
+                        setToast({ message: errMsg, type: 'error' });
                         if (targetMode === 'master') {
                             setShowLogin(true);
                         }
-                        return false;
+                        return { success: false, error: errMsg };
                     }
                 } catch (err) {
-                    setToast({ message: '데이터 로드 실패: ' + err.message, type: 'error' });
-                    return false;
+                    clearTimeout(timeoutId);
+                    const errMsg = err.name === 'AbortError' ? '서버 응답 시간 초과 (네트워크 지연)' : err.message;
+                    setToast({ message: '데이터 로드 실패: ' + errMsg, type: 'error' });
+                    return { success: false, error: '데이터 로드 실패: ' + errMsg };
                 } finally {
                     setLoading(false);
                 }
@@ -964,11 +982,12 @@
             }, []);
 
             const handleLogin = async (pw) => {
-                const ok = await loadData('master', pw);
-                if (ok) { 
-                    sessionStorage.setItem('fp_admin_pw', pw);
+                const cleanPw = (pw || '').trim();
+                const res = await loadData('master', cleanPw);
+                if (res && res.success) { 
+                    sessionStorage.setItem('fp_admin_pw', cleanPw);
                 }
-                return ok;
+                return res;
             };
 
             const switchMode = (mode) => {
@@ -977,6 +996,11 @@
                     sessionStorage.removeItem('fp_admin_pw');
                     setShowLogin(true);
                 } else {
+                    const personal = getPersonalInfo();
+                    if (!personal.name || !personal.pw) {
+                        setToast({ message: '저장된 촬영자 정보(이름/비밀번호)가 없습니다. 촬영 페이지에서 본인 정보를 설정해 주세요.', type: 'error' });
+                        return;
+                    }
                     loadData(mode);
                 }
             };

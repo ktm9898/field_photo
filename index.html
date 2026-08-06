@@ -1268,9 +1268,12 @@
         //  내 마커 복원 (서버에서 내 사진 로드)
         // ─────────────────────────────────────────────
         async function loadMyMarkers() {
-            const photographer = localStorage.getItem('photographer_name') || '';
-            const userPw = localStorage.getItem('photographer_pw') || '';
+            const photographer = (localStorage.getItem('photographer_name') || '').trim();
+            const userPw = (localStorage.getItem('photographer_pw') || '').trim();
             if (!photographer || !userPw) return;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {
@@ -1280,8 +1283,10 @@
                         key: API_SECRET,
                         photographer: photographer,
                         userPw: userPw
-                    })
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
                 const result = await resp.json();
                 if (result.success && result.data && result.data.length > 0) {
                     const uniqueLocs = new Set();
@@ -1299,9 +1304,14 @@
                         }
                     });
                     showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
+                } else if (!result.success) {
+                    console.warn('내 마커 데이터 로드 실패:', result.error);
                 }
             } catch (err) {
+                clearTimeout(timeoutId);
                 console.warn('마커 복원 실패:', err);
+                const msg = err.name === 'AbortError' ? '서버 응답 지연 (시간 초과)' : err.message;
+                showToast('기존 촬영 마커 불러오기 실패: ' + msg, 'error');
             }
         }
 
