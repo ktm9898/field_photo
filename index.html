@@ -1273,7 +1273,7 @@
             if (!photographer || !userPw) return;
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
 
             try {
                 const resp = await fetch(APPS_SCRIPT_URL, {

@@ -350,15 +350,6 @@ function handleGetMyPhotos(data) {
       const photoUrl = String(row[6] || '');
       if (!photoUrl) continue;
 
-      // 기존에 비밀번호가 비어있었던 행이면 새 비밀번호로 자동으로 업데이트해줌
-      if (!rowUserPw && userPw) {
-        try {
-          sheet.getRange(idx + 2, 12).setValue(userPw);
-        } catch (e) {
-          console.warn('Auto set userPw failed:', e);
-        }
-      }
-
       records.push({
         datetime:     row[0] ? String(row[0]) : '',
         bizNumber:    String(row[1] || ''),
