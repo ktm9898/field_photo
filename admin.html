@@ -695,16 +695,22 @@
                 });
             }, []);
 
-            // 지도 크기 확장/축소 또는 전체화면 시 캔버스 재계산
+            // 지도 크기 확장/축소 또는 전체화면 시 캔버스 재계산 및 영역 맞춤
             useEffect(() => {
                 if (!mapInstanceRef.current) return;
                 const timer = setTimeout(() => {
                     if (mapInstanceRef.current && naver.maps.Event) {
                         naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
+                        const validRecords = (records || []).filter(r => r.lat && r.lng);
+                        if (validRecords.length > 0) {
+                            const bounds = new naver.maps.LatLngBounds();
+                            validRecords.forEach(r => bounds.extend(new naver.maps.LatLng(r.lat, r.lng)));
+                            mapInstanceRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+                        }
                     }
-                }, 300);
+                }, 150);
                 return () => clearTimeout(timer);
-            }, [isExpanded, isFullscreen]);
+            }, [isExpanded, isFullscreen, records]);
 
             useEffect(() => {
                 if (!mapInstanceRef.current) return;
@@ -763,7 +769,14 @@
                 if (markersRef.current.length > 0) {
                     const bounds = new naver.maps.LatLngBounds();
                     validRecords.forEach(r => bounds.extend(new naver.maps.LatLng(r.lat, r.lng)));
-                    mapInstanceRef.current.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
+                    const fitMap = () => {
+                        if (mapInstanceRef.current) {
+                            naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
+                            mapInstanceRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+                        }
+                    };
+                    fitMap();
+                    setTimeout(fitMap, 150);
                 }
             }, [records]);
 
