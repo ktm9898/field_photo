@@ -867,6 +867,11 @@
             const [showMobileFilters, setShowMobileFilters] = useState(false);
             const [appliedFilter, setAppliedFilter] = useState({});
 
+            const handleProjectChange = (val) => {
+                setSearchProject(val);
+                setAppliedFilter(prev => ({ ...prev, searchProject: val }));
+            };
+
             const getPw = () => (sessionStorage.getItem('fp_admin_pw') || '').trim();
             const getPersonalInfo = () => ({
                 name: (localStorage.getItem('photographer_name') || '').trim(),
@@ -1556,19 +1561,21 @@
                             {/* ── 모바일 검색 바 (< 768px) ── */}
                             <div className="md:hidden bg-white border-b border-slate-200 px-3 py-2.5 flex flex-col gap-2">
                                 <div className="flex items-center gap-1.5">
+                                    {/* 프로젝트 선택 드롭다운 (맨 앞 배치 & 선택 즉시 필터링) */}
                                     <div className="relative flex-1">
-                                        <Icon name="search" size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input type="text" placeholder="업체명 검색..." 
-                                            className="w-full pl-8 pr-3 h-[38px] text-sm border border-slate-200 rounded-lg outline-none focus:border-blue-400 bg-slate-50 font-semibold"
-                                            value={searchBiz} onChange={e => setSearchBiz(e.target.value)} />
+                                        <select value={searchProject} onChange={e => handleProjectChange(e.target.value)}
+                                            className="w-full h-[38px] px-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500">
+                                            <option value="">전체 프로젝트</option>
+                                            {projectList.map(p => (
+                                                <option key={p} value={p}>{p}</option>
+                                            ))}
+                                        </select>
                                     </div>
+
+                                    {/* 상세 필터(깔때기), 초기화, 새로고침 버튼 */}
                                     <div className="flex gap-1 shrink-0">
-                                        <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer, searchProject })}
-                                            className="h-[38px] px-3 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform">
-                                            조회
-                                        </button>
                                         <button onClick={() => setShowMobileFilters(!showMobileFilters)}
-                                            className={`h-[38px] w-9 flex items-center justify-center border rounded-lg active:scale-95 transition-all text-xs font-bold ${showMobileFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`} title="상세 필터">
+                                            className={`h-[38px] w-9 flex items-center justify-center border rounded-lg active:scale-95 transition-all text-xs font-bold ${showMobileFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-500'}`} title="상세 필터 모달">
                                             <Icon name="filter" size={14} />
                                         </button>
                                         <button onClick={() => { setDateFrom(''); setDateTo(''); setSearchBiz(''); setSearchPhotographer(''); setSearchProject(''); setAppliedFilter({}); }}
@@ -1584,8 +1591,21 @@
                                     </div>
                                 </div>
                                 
+                                {/* 모바일 상세 필터 모달 (업체명, 촬영자명, 날짜 범위, 조건 검색 버튼) */}
                                 {showMobileFilters && (
-                                    <div className="flex flex-col gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="flex flex-col gap-2.5 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400 ml-1">제목(업체명)</label>
+                                                <input type="text" placeholder="업체명 검색..." value={searchBiz} onChange={e => setSearchBiz(e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                            </div>
+                                            <div className="flex-1 space-y-1">
+                                                <label className="text-[10px] font-bold text-slate-400 ml-1">촬영자</label>
+                                                <input type="text" placeholder="촬영자 이름..." value={searchPhotographer} onChange={e => setSearchPhotographer(e.target.value)}
+                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                            </div>
+                                        </div>
                                         <div className="flex items-center gap-2">
                                             <div className="flex-1 space-y-1">
                                                 <label className="text-[10px] font-bold text-slate-400 ml-1">시작일</label>
@@ -1599,23 +1619,10 @@
                                                     className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">프로젝트</label>
-                                                <select value={searchProject} onChange={e => setSearchProject(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg">
-                                                    <option value="">전체 프로젝트</option>
-                                                    {projectList.map(p => (
-                                                        <option key={p} value={p}>{p}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">촬영자</label>
-                                                <input type="text" placeholder="촬영자 이름..." value={searchPhotographer} onChange={e => setSearchPhotographer(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
-                                            </div>
-                                        </div>
+                                        <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer, searchProject })}
+                                            className="w-full h-9 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1 mt-1">
+                                            <Icon name="search" size={14} /> 조건 검색하기
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -1719,9 +1726,19 @@
                                     </div>
                                 )}
 
-                                {/* PC 검색 필터 */}
+                                {/* PC 검색 필터 (프로젝트 맨 앞 배치) */}
                                 <div className="hidden md:block bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
                                     <div className="flex flex-wrap items-end gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-bold text-slate-500">프로젝트</label>
+                                            <select className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none w-36 bg-white"
+                                                value={searchProject} onChange={e => handleProjectChange(e.target.value)}>
+                                                <option value="">전체 프로젝트</option>
+                                                {projectList.map(p => (
+                                                    <option key={p} value={p}>{p}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">시작일</label>
                                             <input type="date" className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none"
@@ -1731,16 +1748,6 @@
                                             <label className="text-xs font-bold text-slate-500">종료일</label>
                                             <input type="date" className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none"
                                                 value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <label className="text-xs font-bold text-slate-500">프로젝트</label>
-                                            <select className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none w-36 bg-white"
-                                                value={searchProject} onChange={e => setSearchProject(e.target.value)}>
-                                                <option value="">전체 프로젝트</option>
-                                                {projectList.map(p => (
-                                                    <option key={p} value={p}>{p}</option>
-                                                ))}
-                                            </select>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">제목(업체명)</label>
