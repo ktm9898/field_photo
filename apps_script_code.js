@@ -310,9 +310,13 @@ function handleSendEmail(data) {
         rawBlobs.push(file.getBlob());
     }
 
-    if (data.isZip || rawBlobs.length > 2) {
-      const zipName = (data.bizNumber || data.projectName || '현장사진') + '_' + formatDateStr(new Date()) + '.zip';
-      const zipBlob = Utilities.zip(rawBlobs, zipName);
+    if (data.isZip || rawBlobs.length > 1) {
+      var proj = (data.projectName || data.project || '전체').replace(/[/\\?%*:|"<>]/g, '_');
+      var now = new Date();
+      var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+      var timeStamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+      var zipName = data.zipFileName || ('현장사진_' + proj + '_' + data.fileIds.length + '건_' + timeStamp + '.zip');
+      var zipBlob = Utilities.zip(rawBlobs, zipName);
       finalAttachments = [zipBlob];
     } else {
       finalAttachments = rawBlobs;

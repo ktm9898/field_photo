@@ -1280,6 +1280,8 @@
                     }
                     const zip = new JSZip();
                     let count = 0;
+                    const usedNames = new Set();
+
                     for (let i = 0; i < photos.length; i++) {
                         const p = photos[i];
                         if (!p.fileId) continue;
@@ -1289,16 +1291,42 @@
                         });
                         const result = await res.json();
                         if (result.success && result.base64) {
-                            const folderName = (p.bizNumber || '업체').replace(/[/\\?%*:|"<>]/g, '_');
-                            const fileName = p.fileName || `photo_${i + 1}.jpg`;
-                            zip.folder(folderName).file(fileName, result.base64, { base64: true });
+                            // 하위 폴더 없이 root 레벨에 직접 파일 추가 (파일명 중복 방지 태깅)
+                            let rawName = p.fileName || `photo_${i + 1}.jpg`;
+                            if (p.bizNumber) {
+                                rawName = `${p.bizNumber}_${rawName}`;
+                            }
+                            let cleanName = rawName.replace(/[/\\?%*:|"<>]/g, '_');
+                            let finalFileName = cleanName;
+                            let dupCounter = 1;
+                            while (usedNames.has(finalFileName)) {
+                                const extIdx = cleanName.lastIndexOf('.');
+                                if (extIdx !== -1) {
+                                    finalFileName = `${cleanName.substring(0, extIdx)}_${dupCounter}${cleanName.substring(extIdx)}`;
+                                } else {
+                                    finalFileName = `${cleanName}_${dupCounter}`;
+                                }
+                                dupCounter++;
+                            }
+                            usedNames.add(finalFileName);
+
+                            zip.file(finalFileName, result.base64, { base64: true });
                             count++;
                         }
                         if (i < photos.length - 1) await new Promise(r => setTimeout(r, 150));
                     }
                     if (count === 0) throw new Error('다운로드 가능한 사진 데이터가 없습니다.');
                     const zipBlob = await zip.generateAsync({ type: 'blob' });
-                    const zipFileName = `현장사진_${searchProject || '전체'}_${new Date().toISOString().split('T')[0]}.zip`;
+
+                    // 옵션 B: 현장사진_[프로젝트명]_[건수]건_[YYYYMMDD_HHMMSS].zip
+                    const getFormattedTimestamp = () => {
+                        const d = new Date();
+                        const pad = n => String(n).padStart(2, '0');
+                        return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+                    };
+                    const projName = (searchProject || '전체').replace(/[/\\?%*:|"<>]/g, '_');
+                    const zipFileName = `현장사진_${projName}_${count}건_${getFormattedTimestamp()}.zip`;
+
                     if (typeof saveAs !== 'undefined') {
                         saveAs(zipBlob, zipFileName);
                     } else {
@@ -1325,9 +1353,17 @@
                 if (fileIds.length === 0) return;
 
                 const lastEmail = localStorage.getItem('last_send_email') || '';
-                const targetEmail = prompt(`선택한 ${selectedGroupKeys.size}개 업체 (총 ${fileIds.length}장 사진)를 첨부 메일로 받으실 주소를 입력하세요.`, lastEmail);
+                const targetEmail = prompt(`선택한 ${selectedGroupKeys.size}개 항목 (총 ${fileIds.length}장 사진)을 첨부 메일로 받으실 주소를 입력하세요.`, lastEmail);
                 if (!targetEmail) return;
                 localStorage.setItem('last_send_email', targetEmail);
+
+                const getFormattedTimestamp = () => {
+                    const d = new Date();
+                    const pad = n => String(n).padStart(2, '0');
+                    return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+                };
+                const projName = (searchProject || '전체').replace(/[/\\?%*:|"<>]/g, '_');
+                const zipFileName = `현장사진_${projName}_${fileIds.length}건_${getFormattedTimestamp()}.zip`;
 
                 setToast({ message: 'ZIP 압축 파일 형태로 이메일 발송을 요청 중입니다...', type: 'info' });
                 try {
@@ -1338,7 +1374,8 @@
                             action: 'sendEmail',
                             key: API_SECRET,
                             pw,
-                            projectName: searchProject || '선택목록',
+                            projectName: projName,
+                            zipFileName: zipFileName,
                             email: targetEmail,
                             fileIds: fileIds,
                             isZip: true
