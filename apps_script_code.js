@@ -163,6 +163,12 @@ function doPost(e) {
       return handleUpdateUserPassword(data);
     }
 
+    // 9) 프로젝트(카테고리) 변경
+    if (data.action === 'updateProject') {
+      if ((data.key || '') !== API_SECRET) return unauthorizedResponse();
+      return handleUpdateProject(data);
+    }
+
     return jsonResponse({ success: false, error: '알 수 없는 요청입니다.' });
 
   } catch (err) {
@@ -180,8 +186,7 @@ function doGet(e) {
 }
 
 // ── 머릿글 자동 생성 ─────────────────────────────────────────
-// ── 머릿글 자동 생성 ─────────────────────────────────────────
-const HEADERS = ['촬영일시', '제목(업체명)', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명', '이메일', '비밀번호'];
+const HEADERS = ['촬영일시', '제목(업체명)', '촬영자', '위도', '경도', '주소', '사진URL', '사진파일ID', '메모', '파일명', '이메일', '비밀번호', '프로젝트'];
 
 function ensureHeaders(sheet) {
   // 시트가 완전히 비어 있을 때만 머릿글 추가
@@ -233,7 +238,9 @@ function handleUpload(data) {
   const fileId  = file.getId();
   const fileUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
-  // 시트에 메타데이터 기록 (12열)
+  const projectStr = (data.project || '').trim() || '미지정';
+
+  // 시트에 메타데이터 기록 (13열)
   sheet.appendRow([
     datetimeStr,                         // A: 촬영일시
     data.bizNumber || '',                // B: 업체번호
@@ -246,14 +253,16 @@ function handleUpload(data) {
     data.memo || '',                     // I: 메모
     fileName,                            // J: 파일명
     data.email || '',                    // K: 이메일
-    data.userPw || data.password || ''   // L: 비밀번호
+    data.userPw || data.password || '',  // L: 비밀번호
+    projectStr                           // M: 프로젝트
   ]);
 
   return jsonResponse({
     success: true,
     fileUrl: fileUrl,
     fileId:  fileId,
-    fileName: fileName
+    fileName: fileName,
+    project: projectStr
   });
 }
 
@@ -265,7 +274,7 @@ function handleGetAll() {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   const records = values.map((row, idx) => ({
     rowIndex:     idx + 2,
     datetime:     row[0] ? String(row[0]) : '',
@@ -279,24 +288,34 @@ function handleGetAll() {
     memo:         String(row[8] || ''),
     fileName:     String(row[9] || ''),
     email:        String(row[10] || ''),
-    userPw:       String(row[11] || '')
+    userPw:       String(row[11] || ''),
+    project:      String(row[12] || '').trim() || '미지정'
   })).filter(r => r.photoUrl); // URL 없는 행 제외
 
   records.reverse(); // 최신순
   return jsonResponse({ success: true, data: records, total: records.length });
 }
 
-// ── 이메일 전송 ──────────────────────────────────────────────
+// ── 이메일 전송 (단일 또는 ZIP 압축) ──────────────────────────────
 function handleSendEmail(data) {
   if (!data.email) return jsonResponse({ success: false, error: '수신 이메일 정보가 없습니다.' });
   if (!data.fileIds || !data.fileIds.length) return jsonResponse({ success: false, error: '첨부할 파일 식별자가 없습니다.' });
 
-  const attachments = [];
+  let finalAttachments = [];
   try {
+    const rawBlobs = [];
     for (let i = 0; i < data.fileIds.length; i++) {
         const fId = data.fileIds[i];
         const file = DriveApp.getFileById(fId);
-        attachments.push(file.getBlob());
+        rawBlobs.push(file.getBlob());
+    }
+
+    if (data.isZip || rawBlobs.length > 2) {
+      const zipName = (data.bizNumber || data.projectName || '현장사진') + '_' + formatDateStr(new Date()) + '.zip';
+      const zipBlob = Utilities.zip(rawBlobs, zipName);
+      finalAttachments = [zipBlob];
+    } else {
+      finalAttachments = rawBlobs;
     }
   } catch (err) {
       return jsonResponse({ success: false, error: '파일을 드라이브에서 가져오는 중 오류가 발생했습니다. ' + err.toString() });
@@ -304,16 +323,16 @@ function handleSendEmail(data) {
 
   const htmlBody = `
     <h2>상권 현장 방문 사진</h2>
-    <p><b>제목(업체명):</b> ${data.bizNumber || '-'}</p>
-    <p>총 <b>${attachments.length}</b>장의 사진이 첨부되었습니다.</p>
+    <p><b>제목(업체명/프로젝트):</b> ${data.bizNumber || data.projectName || '-'}</p>
+    <p>총 <b>${data.fileIds.length}</b>장의 사진이 첨부되었습니다.</p>
   `;
 
   try {
     MailApp.sendEmail({
       to: data.email,
-      subject: `[현장사진] ${data.bizNumber} 현장점검 결과`,
+      subject: `[현장사진] ${data.bizNumber || data.projectName || '결과'} 현장점검 사진 목록`,
       htmlBody: htmlBody,
-      attachments: attachments
+      attachments: finalAttachments
     });
   } catch (err) {
     if (err.toString().includes('Exceeded maximum execution time') || err.toString().includes('Limit Exceeded') || err.toString().includes('too large')) {
@@ -337,7 +356,7 @@ function handleGetMyPhotos(data) {
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return jsonResponse({ success: true, data: [], total: 0 });
 
-  const values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
+  const values = sheet.getRange(2, 1, lastRow - 1, 13).getValues();
   const records = [];
   let nameCount = 0;
 
@@ -578,6 +597,47 @@ function handleDeletePhotos(data) {
   } catch (err) {
     console.error('Delete Photos Error:', err.toString());
     return jsonResponse({ success: false, error: '사진 삭제 오류: ' + err.toString() });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// ── 프로젝트(카테고리) 변경 ───────────────────────────────────
+function handleUpdateProject(data) {
+  const newProject = (data.project || '').trim() || '미지정';
+  const fileIds = data.fileIds || [];
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return jsonResponse({ success: false, error: '변경할 파일 ID 목록이 없습니다.' });
+  }
+
+  const sheet = getSheet();
+  if (!sheet) return jsonResponse({ success: false, error: '시트를 찾을 수 없습니다.' });
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonResponse({ success: true, updatedCount: 0 });
+
+  const idSet = new Set(fileIds.map(id => String(id).trim()));
+  const lock = LockService.getScriptLock();
+
+  try {
+    lock.waitLock(15000);
+    const range = sheet.getRange(2, 1, lastRow - 1, 13);
+    const values = range.getValues();
+    let updatedCount = 0;
+
+    for (let i = 0; i < values.length; i++) {
+      const rowFileId = String(values[i][7] || '').trim(); // H열: 사진파일ID
+      if (idSet.has(rowFileId)) {
+        sheet.getRange(i + 2, 13).setValue(newProject); // M열: 프로젝트
+        updatedCount++;
+      }
+    }
+
+    SpreadsheetApp.flush();
+    return jsonResponse({ success: true, updatedCount: updatedCount, project: newProject });
+  } catch (err) {
+    console.error('Update Project Error:', err.toString());
+    return jsonResponse({ success: false, error: '프로젝트 변경 오류: ' + err.toString() });
   } finally {
     lock.releaseLock();
   }

@@ -797,6 +797,15 @@
         </div>
 
         <div class="field-group">
+            <label class="field-label">프로젝트(카테고리)</label>
+            <select id="input-project" class="field-input" onchange="onProjectSelectChange(this)" style="appearance:auto;">
+                <option value="미지정">미지정</option>
+                <option value="__NEW__">+ 신규 프로젝트 추가</option>
+            </select>
+            <input type="text" id="input-project-custom" class="field-input" placeholder="새 프로젝트명 입력..." style="display:none;margin-top:6px;" maxlength="30">
+        </div>
+
+        <div class="field-group">
             <label class="field-label">메모</label>
             <textarea id="input-memo" class="field-input" placeholder="예: 정문 사진, 간판 상태 양호 등"></textarea>
         </div>
@@ -1142,6 +1151,16 @@
             });
         }
 
+        function onProjectSelectChange(sel) {
+            const customInput = document.getElementById('input-project-custom');
+            if (sel.value === '__NEW__') {
+                customInput.style.display = 'block';
+                customInput.focus();
+            } else {
+                customInput.style.display = 'none';
+            }
+        }
+
         // ─────────────────────────────────────────────
         //  사진 일괄 업로드
         // ─────────────────────────────────────────────
@@ -1151,6 +1170,11 @@
             const email = localStorage.getItem('photographer_email') || '';
             const userPw = localStorage.getItem('photographer_pw') || '';
             const memo = document.getElementById('input-memo').value.trim();
+
+            let project = document.getElementById('input-project').value;
+            if (project === '__NEW__') {
+                project = document.getElementById('input-project-custom').value.trim() || '미지정';
+            }
 
             if (!photographer || !userPw) {
                 showToast('촬영자 설정이 필요합니다. 이름을 먼저 설정해주세요.', 'error');
@@ -1189,6 +1213,7 @@
                         email,
                         userPw,
                         memo,
+                        project,
                         lat: gps.lat,
                         lng: gps.lng,
                         address: currentAddress || ''
@@ -1329,6 +1354,23 @@
                             });
                         }
                     });
+                    // 등록된 프로젝트 목록으로 바텀시트 셀렉트 옵션 동적 갱신
+                    const projectSet = new Set(['미지정']);
+                    result.data.forEach(r => {
+                        if (r.project && r.project.trim() && r.project !== '미지정') {
+                            projectSet.add(r.project.trim());
+                        }
+                    });
+                    const projSelect = document.getElementById('input-project');
+                    if (projSelect) {
+                        let opts = '';
+                        projectSet.forEach(p => {
+                            opts += '<option value="' + p + '">' + p + '</option>';
+                        });
+                        opts += '<option value="__NEW__">+ 신규 프로젝트 추가</option>';
+                        projSelect.innerHTML = opts;
+                    }
+
                     showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
                 } else if (result.success && (!result.data || result.data.length === 0)) {
                     // 신규 촬영자이거나 등록된 사진이 아직 없는 정상 상태
@@ -1542,6 +1584,10 @@
             // 입력 필드 초기화
             document.getElementById('input-biz').value = '';
             document.getElementById('input-memo').value = '';
+            const pSel = document.getElementById('input-project');
+            if (pSel) pSel.value = '미지정';
+            const pCustom = document.getElementById('input-project-custom');
+            if (pCustom) { pCustom.value = ''; pCustom.style.display = 'none'; }
             // 촬영종료 바 제거
             updateCaptureUI();
         }
