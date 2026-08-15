@@ -389,7 +389,8 @@ function handleGetMyPhotos(data) {
           memo:         String(row[8] || ''),
           fileName:     String(row[9] || ''),
           email:        rowEmail,
-          userPw:       userPw
+          userPw:       userPw,
+          project:      String(row[12] || '').trim() || '미지정'
         });
       }
     }
