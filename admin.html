@@ -666,7 +666,7 @@
         };
 
         // ── 지도 뷰 ──
-        const MapView = ({ records, isExpanded }) => {
+        const MapView = ({ records, isExpanded, isFullscreen }) => {
             const mapRef = useRef(null);
             const mapInstanceRef = useRef(null);
             const markersRef = useRef([]);
@@ -695,16 +695,16 @@
                 });
             }, []);
 
-            // 지도 크기 확장/축소 시 캔버스 재계산
+            // 지도 크기 확장/축소 또는 전체화면 시 캔버스 재계산
             useEffect(() => {
                 if (!mapInstanceRef.current) return;
                 const timer = setTimeout(() => {
                     if (mapInstanceRef.current && naver.maps.Event) {
                         naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
                     }
-                }, 360);
+                }, 300);
                 return () => clearTimeout(timer);
-            }, [isExpanded]);
+            }, [isExpanded, isFullscreen]);
 
             useEffect(() => {
                 if (!mapInstanceRef.current) return;
@@ -767,7 +767,52 @@
                 }
             }, [records]);
 
-            return <div id="admin-map" ref={mapRef} className={isExpanded ? 'map-expanded' : ''}></div>;
+            return (
+                <div 
+                    ref={mapRef} 
+                    id={isFullscreen ? undefined : "admin-map"}
+                    className={isFullscreen ? "w-full h-full rounded-b-xl" : (isExpanded ? "map-expanded" : "")}
+                    style={isFullscreen ? { width: "100%", height: "100%" } : undefined}
+                ></div>
+            );
+        };
+
+        // ── 전체화면 지도 모달 ──
+        const FullscreenMapModal = ({ records, onClose }) => {
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === 'Escape') onClose();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [onClose]);
+
+            const validCount = (records || []).filter(r => r.lat && r.lng).length;
+
+            return (
+                <div className="fixed inset-0 z-[11000] bg-slate-900/90 backdrop-blur-md flex flex-col p-3 md:p-6 animate-fade-in">
+                    {/* 상단 툴바 */}
+                    <div className="flex items-center justify-between bg-slate-800 text-white px-4 py-3 rounded-t-xl border-b border-slate-700 shrink-0">
+                        <div className="flex items-center gap-2">
+                            <Icon name="map-pin" size={18} className="text-blue-400" />
+                            <span className="font-black text-sm md:text-base">촬영 위치 지도 (전체화면)</span>
+                            <span className="text-xs font-bold text-slate-400">({validCount}건 위치 등록됨)</span>
+                        </div>
+                        <button 
+                            onClick={onClose}
+                            className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm active:scale-95"
+                            title="전체화면 닫기 (ESC)"
+                        >
+                            <Icon name="x" size={16} />
+                            <span>닫기 (ESC)</span>
+                        </button>
+                    </div>
+                    {/* 지도 메인 영역 */}
+                    <div className="flex-1 w-full bg-white rounded-b-xl overflow-hidden shadow-2xl relative">
+                        <MapView records={records} isFullscreen={true} />
+                    </div>
+                </div>
+            );
         };
 
         // ── 메인 앱 ──
@@ -784,6 +829,7 @@
             const [photoModal, setPhotoModal] = useState(null);
             const [showMap, setShowMap] = useState(false);
             const [isMapExpanded, setIsMapExpanded] = useState(false);
+            const [showFullscreenMap, setShowFullscreenMap] = useState(false);
             const [selectedGroupKeys, setSelectedGroupKeys] = useState(new Set());
 
             const getGroupKey = useCallback((r) => {
@@ -1614,12 +1660,23 @@
                                                 <Icon name="map-pin" size={16} className="text-blue-500" /> 촬영 위치 지도
                                                 <span className="text-xs font-semibold text-slate-400 ml-1">({groupedRecords.filter(r => r.lat && r.lng).length}건)</span>
                                             </h3>
-                                            <button onClick={() => setIsMapExpanded(prev => !prev)}
-                                                className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center gap-1.5 transition-colors shadow-sm"
-                                                title={isMapExpanded ? "지도 원래 크기로 축소" : "지도 세로 크게 확대 (캡처용)"}>
-                                                <Icon name={isMapExpanded ? "minimize-2" : "maximize-2"} size={13} />
-                                                <span>{isMapExpanded ? "지도 축소" : "지도 크게 확대"}</span>
-                                            </button>
+                                            <div className="flex items-center gap-1.5">
+                                                {/* 1. 지도확대 / 지도축소 버튼 */}
+                                                <button onClick={() => setIsMapExpanded(prev => !prev)}
+                                                    className="px-2.5 py-1 text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-lg flex items-center gap-1 transition-colors shadow-sm"
+                                                    title={isMapExpanded ? "지도 원래 크기로 축소" : "지도 세로 크게 확대 (680px)"}>
+                                                    <Icon name={isMapExpanded ? "minimize-2" : "maximize-2"} size={13} />
+                                                    <span>{isMapExpanded ? "지도축소" : "지도확대"}</span>
+                                                </button>
+
+                                                {/* 2. 전체화면 버튼 */}
+                                                <button onClick={() => setShowFullscreenMap(true)}
+                                                    className="px-2.5 py-1 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg flex items-center gap-1 transition-colors shadow-sm"
+                                                    title="화면 전체 크기로 지도 보기">
+                                                    <Icon name="maximize" size={13} />
+                                                    <span>전체화면</span>
+                                                </button>
+                                            </div>
                                         </div>
                                         <MapView records={filteredRecords} isExpanded={isMapExpanded} />
                                     </div>
@@ -1950,6 +2007,14 @@
                                     onDownloadSingle={triggerDownload}
                                     memoUpdater={updateMemo}
                                     photoDeleter={deletePhoto}
+                                />
+                            )}
+
+                            {/* ── 전체화면 지도 모달 ── */}
+                            {showFullscreenMap && (
+                                <FullscreenMapModal 
+                                    records={filteredRecords} 
+                                    onClose={() => setShowFullscreenMap(false)} 
                                 />
                             )}
                         </div>
