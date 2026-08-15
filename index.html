@@ -1331,7 +1331,8 @@
                     });
                     showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
                 } else if (result.success && (!result.data || result.data.length === 0)) {
-                    showToast('등록된 사진이 없거나 비밀번호가 일치하지 않습니다.', 'info');
+                    showToast('저장된 비밀번호가 일치하지 않거나 사진이 없습니다. 비밀번호를 다시 입력해 주세요.', 'error');
+                    showPhotographerModal(true);
                 } else if (!result.success) {
                     console.warn('내 마커 데이터 로드 실패:', result.error);
                 }
@@ -1544,9 +1545,9 @@
         // ─────────────────────────────────────────────
         //  촬영자 설정
         // ─────────────────────────────────────────────
-        function showPhotographerModal() {
+        function showPhotographerModal(clearPw) {
             const saved = localStorage.getItem('photographer_name') || '';
-            const savedPw = localStorage.getItem('photographer_pw') || '';
+            const savedPw = clearPw ? '' : (localStorage.getItem('photographer_pw') || '');
             const savedEmail = localStorage.getItem('photographer_email') || '';
             document.getElementById('photographer-input').value = saved;
             document.getElementById('photographer-pw-input').value = savedPw;
