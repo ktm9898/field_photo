@@ -1593,34 +1593,28 @@
                                 
                                 {/* 모바일 상세 필터 모달 (업체명, 촬영자명, 날짜 범위, 조건 검색 버튼) */}
                                 {showMobileFilters && (
-                                    <div className="flex flex-col gap-2.5 p-3 bg-slate-50 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="flex flex-col gap-2 p-2.5 bg-slate-50 rounded-lg border border-slate-200 animate-in fade-in slide-in-from-top-1 duration-200">
                                         <div className="flex items-center gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">제목(업체명)</label>
-                                                <input type="text" placeholder="업체명 검색..." value={searchBiz} onChange={e => setSearchBiz(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
-                                            </div>
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">촬영자</label>
-                                                <input type="text" placeholder="촬영자 이름..." value={searchPhotographer} onChange={e => setSearchPhotographer(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
-                                            </div>
+                                            <input type="text" placeholder="제목(업체명) 검색..." value={searchBiz} onChange={e => setSearchBiz(e.target.value)}
+                                                className="flex-1 min-w-0 bg-white border border-slate-200 text-xs font-bold text-slate-700 outline-none h-9 px-2.5 rounded-lg focus:border-blue-400" />
+                                            <input type="text" placeholder="촬영자 이름..." value={searchPhotographer} onChange={e => setSearchPhotographer(e.target.value)}
+                                                className="flex-1 min-w-0 bg-white border border-slate-200 text-xs font-bold text-slate-700 outline-none h-9 px-2.5 rounded-lg focus:border-blue-400" />
                                         </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">시작일</label>
+                                        <div className="flex items-center gap-1.5">
+                                            <div className="flex-1 min-w-0 flex items-center bg-white border border-slate-200 rounded-lg h-9 px-2">
+                                                <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1">시작일</span>
                                                 <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                                    className="w-full min-w-0 text-xs font-bold text-slate-700 outline-none bg-transparent" />
                                             </div>
-                                            <span className="text-slate-300 font-bold mt-5">~</span>
-                                            <div className="flex-1 space-y-1">
-                                                <label className="text-[10px] font-bold text-slate-400 ml-1">종료일</label>
+                                            <span className="text-slate-300 font-bold shrink-0">~</span>
+                                            <div className="flex-1 min-w-0 flex items-center bg-white border border-slate-200 rounded-lg h-9 px-2">
+                                                <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1">종료일</span>
                                                 <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-                                                    className="w-full bg-white border border-slate-200 text-xs font-bold text-slate-600 outline-none h-9 px-2 rounded-lg" />
+                                                    className="w-full min-w-0 text-xs font-bold text-slate-700 outline-none bg-transparent" />
                                             </div>
                                         </div>
                                         <button onClick={() => setAppliedFilter({ dateFrom, dateTo, searchBiz, searchPhotographer, searchProject })}
-                                            className="w-full h-9 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1 mt-1">
+                                            className="w-full h-9 bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-1 mt-0.5">
                                             <Icon name="search" size={14} /> 조건 검색하기
                                         </button>
                                     </div>
