@@ -671,46 +671,61 @@
             const mapInstanceRef = useRef(null);
             const markersRef = useRef([]);
             const infoWindowRef = useRef(null);
+            const [isLoaded, setIsLoaded] = useState(false);
 
+            // SDK 준비 점검 및 지도 객체 생성 (폴링 방식 적용)
             useEffect(() => {
-                if (!mapRef.current || mapInstanceRef.current) return;
-                if (typeof naver === 'undefined' || !naver.maps) {
-                    console.warn('네이버 지도 SDK가 아직 로드되지 않았습니다.');
-                    return;
+                let timer = null;
+                const initMap = () => {
+                    if (!mapRef.current) return;
+                    if (window.naver && window.naver.maps) {
+                        if (!mapInstanceRef.current) {
+                            try {
+                                mapInstanceRef.current = new window.naver.maps.Map(mapRef.current, {
+                                    center: new window.naver.maps.LatLng(37.5365, 126.9780),
+                                    zoom: 14,
+                                    logoControl: false,
+                                    mapDataControl: false
+                                });
+
+                                infoWindowRef.current = new window.naver.maps.InfoWindow({
+                                    borderWidth: 0,
+                                    backgroundColor: 'transparent',
+                                    disableAnchor: true,
+                                    pixelOffset: new window.naver.maps.Point(0, -8)
+                                });
+
+                                window.naver.maps.Event.addListener(mapInstanceRef.current, 'click', () => {
+                                    if (infoWindowRef.current) infoWindowRef.current.close();
+                                });
+                                setIsLoaded(true);
+                            } catch (e) {
+                                console.error('지도 생성 실패:', e);
+                            }
+                        } else {
+                            setIsLoaded(true);
+                        }
+                        if (timer) clearInterval(timer);
+                    }
+                };
+
+                initMap();
+                if (!mapInstanceRef.current) {
+                    timer = setInterval(initMap, 200);
                 }
 
-                try {
-                    mapInstanceRef.current = new naver.maps.Map(mapRef.current, {
-                        center: new naver.maps.LatLng(37.5365, 126.9780),
-                        zoom: 14,
-                        logoControl: false,
-                        mapDataControl: false
-                    });
-
-                    // 정보창 생성 (단일 인스턴스)
-                    infoWindowRef.current = new naver.maps.InfoWindow({
-                        borderWidth: 0,
-                        backgroundColor: 'transparent',
-                        disableAnchor: true,
-                        pixelOffset: new naver.maps.Point(0, -8)
-                    });
-
-                    // 지도 클릭 시 정보창 닫기
-                    naver.maps.Event.addListener(mapInstanceRef.current, 'click', () => {
-                        if (infoWindowRef.current) infoWindowRef.current.close();
-                    });
-                } catch (e) {
-                    console.error('지도 초기화 실패:', e);
-                }
+                return () => {
+                    if (timer) clearInterval(timer);
+                };
             }, []);
 
+            // 마커 및 리사이즈 갱신
             useEffect(() => {
-                if (!mapInstanceRef.current || typeof naver === 'undefined' || !naver.maps) return;
+                if (!isLoaded || !mapInstanceRef.current || !window.naver || !window.naver.maps) return;
                 
-                // 지도 사이즈 재계산 (화면 렌더링깨짐 방지)
                 setTimeout(() => {
-                    if (mapInstanceRef.current && naver.maps.Event) {
-                        naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
+                    if (mapInstanceRef.current && window.naver && window.naver.maps) {
+                        window.naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
                     }
                 }, 100);
 
@@ -736,8 +751,8 @@
                         <text x="28" y="11" font-size="8" font-weight="900" text-anchor="middle" fill="#333" font-family="sans-serif">${count}</text>
                     ` : '';
 
-                    const marker = new naver.maps.Marker({
-                        position: new naver.maps.LatLng(first.lat, first.lng),
+                    const marker = new window.naver.maps.Marker({
+                        position: new window.naver.maps.LatLng(first.lat, first.lng),
                         map: mapInstanceRef.current,
                         icon: {
                             content: `<div style="width:36px;height:36px;cursor:pointer;display:flex;align-items:center;justify-content:center;">
@@ -747,7 +762,7 @@
                                     ${badgeHtml}
                                 </svg>
                             </div>`,
-                            anchor: new naver.maps.Point(16, 33)
+                            anchor: new window.naver.maps.Point(16, 33)
                         }
                     });
 
@@ -758,7 +773,7 @@
                         <div class="meta-info">${countText}사진 ${photos.length}장</div>
                     </div>`;
 
-                    naver.maps.Event.addListener(marker, 'click', () => {
+                    window.naver.maps.Event.addListener(marker, 'click', () => {
                         infoWindowRef.current.setContent(content);
                         infoWindowRef.current.open(mapInstanceRef.current, marker);
                     });
@@ -767,15 +782,15 @@
                 });
 
                 if (markersRef.current.length > 0) {
-                    const bounds = new naver.maps.LatLngBounds();
-                    validRecords.forEach(r => bounds.extend(new naver.maps.LatLng(r.lat, r.lng)));
+                    const bounds = new window.naver.maps.LatLngBounds();
+                    validRecords.forEach(r => bounds.extend(new window.naver.maps.LatLng(r.lat, r.lng)));
                     mapInstanceRef.current.fitBounds(bounds, { top: 40, right: 40, bottom: 40, left: 40 });
                 }
-            }, [records]);
+            }, [records, isLoaded]);
 
             return (
                 <div id="admin-map" ref={mapRef} style={{ width: '100%', minHeight: '380px' }}>
-                    {typeof naver === 'undefined' && (
+                    {!isLoaded && (
                         <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 font-bold text-xs">
                             지도를 불러오는 중...
                         </div>
@@ -1757,12 +1772,9 @@
                                                     <span className="text-xs font-black text-slate-400 w-4 text-center">{(currentPage - 1) * PAGE_SIZE + idx + 1}</span>
                                                 </div>
 
-                                                {/* 업체명 & 프로젝트 */}
+                                                {/* 업체명 */}
                                                 <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-1.5 flex-wrap">
-                                                        <p className="font-black text-slate-800 text-sm truncate">{r.bizNumber || '-'}</p>
-                                                        <span className="text-[10px] px-1.5 py-0.5 bg-violet-50 text-violet-700 border border-violet-100 rounded font-bold">{r.project || '미지정'}</span>
-                                                    </div>
+                                                    <p className="font-black text-slate-800 text-sm truncate">{r.bizNumber || '-'}</p>
                                                 </div>
 
                                                 {/* 썸네일 */}
@@ -1811,8 +1823,7 @@
                                                             <span>#</span>
                                                         </div>
                                                      </th>
-                                                     <th className="px-3 py-3 text-center w-[160px]">제목(업체명)</th>
-                                                     <th className="px-3 py-3 text-center w-[110px]">프로젝트</th>
+                                                     <th className="px-3 py-3 text-center w-[180px]">제목(업체명)</th>
                                                      <th className="px-3 py-3 text-center w-[80px]">썸네일</th>
                                                      <th className="px-3 py-3 text-center w-[150px]">촬영일시</th>
                                                      <th className="px-3 py-3 text-center w-[100px]">촬영자</th>
@@ -1824,7 +1835,7 @@
                                             <tbody>
                                                 {filteredRecords.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={10} className="px-4 py-16 text-center">
+                                                        <td colSpan={9} className="px-4 py-16 text-center">
                                                             <div className="flex flex-col items-center gap-3">
                                                                 <div className={`w-16 h-16 rounded-full flex items-center justify-center ${loading ? 'bg-blue-50' : 'bg-slate-100'}`}>
                                                                     <Icon name={loading ? 'loader-2' : 'image-off'} size={32} className={loading ? 'text-blue-500 animate-spin' : 'text-slate-300'} />
@@ -1849,11 +1860,6 @@
                                                             <div className="font-black text-slate-700 text-sm">
                                                                 {r.bizNumber || '-'}
                                                             </div>
-                                                        </td>
-                                                        <td className="px-3 py-3 text-center">
-                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-violet-50 text-violet-700 border border-violet-100">
-                                                                {r.project || '미지정'}
-                                                            </span>
                                                         </td>
                                                         <td className="px-3 py-3 text-center">
                                                             {r.photoUrl ? (
