@@ -1608,24 +1608,15 @@
             if (!name) { showToast('이름을 입력해주세요.', 'error'); return; }
             if (!pw) { showToast('비밀번호를 입력해주세요.', 'error'); return; }
 
-            const oldName = localStorage.getItem('photographer_name') || '';
-            const oldPw = localStorage.getItem('photographer_pw') || '';
-
-            // 동일 사용자 정보에서 입력 비밀번호가 기존 비밀번호와 다르면 경고 및 차단
-            if (oldName === name && oldPw && oldPw !== pw) {
-                showToast('비밀번호가 일치하지 않습니다.', 'error');
-                return;
-            }
-
-            showToast('촬영자 설정 완료', 'success');
-
             localStorage.setItem('photographer_name', name);
             localStorage.setItem('photographer_pw', pw);
             localStorage.setItem('photographer_email', email);
             document.getElementById('photographer-name').textContent = name;
             document.getElementById('photographer-overlay').classList.add('hidden');
 
-            // 기존 마커 제거 후 새 촬영자의 마커 복원
+            showToast('촬영자 설정 완료', 'success');
+
+            // 기존 마커 제거 후 변경/입력된 비밀번호로 서버에서 마커 복원
             Object.keys(allMarkers).forEach(function (k) {
                 allMarkers[k].marker.setMap(null);
             });
