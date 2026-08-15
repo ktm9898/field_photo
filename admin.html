@@ -674,34 +674,51 @@
 
             useEffect(() => {
                 if (!mapRef.current || mapInstanceRef.current) return;
-                mapInstanceRef.current = new naver.maps.Map(mapRef.current, {
-                    center: new naver.maps.LatLng(37.5365, 126.9780),
-                    zoom: 14,
-                    logoControl: false,
-                    mapDataControl: false
-                });
+                if (typeof naver === 'undefined' || !naver.maps) {
+                    console.warn('네이버 지도 SDK가 아직 로드되지 않았습니다.');
+                    return;
+                }
 
-                // 정보창 생성 (단일 인스턴스)
-                infoWindowRef.current = new naver.maps.InfoWindow({
-                    borderWidth: 0,
-                    backgroundColor: 'transparent',
-                    disableAnchor: true,
-                    pixelOffset: new naver.maps.Point(0, -8)
-                });
+                try {
+                    mapInstanceRef.current = new naver.maps.Map(mapRef.current, {
+                        center: new naver.maps.LatLng(37.5365, 126.9780),
+                        zoom: 14,
+                        logoControl: false,
+                        mapDataControl: false
+                    });
 
-                // 지도 클릭 시 정보창 닫기
-                naver.maps.Event.addListener(mapInstanceRef.current, 'click', () => {
-                    if (infoWindowRef.current) infoWindowRef.current.close();
-                });
+                    // 정보창 생성 (단일 인스턴스)
+                    infoWindowRef.current = new naver.maps.InfoWindow({
+                        borderWidth: 0,
+                        backgroundColor: 'transparent',
+                        disableAnchor: true,
+                        pixelOffset: new naver.maps.Point(0, -8)
+                    });
+
+                    // 지도 클릭 시 정보창 닫기
+                    naver.maps.Event.addListener(mapInstanceRef.current, 'click', () => {
+                        if (infoWindowRef.current) infoWindowRef.current.close();
+                    });
+                } catch (e) {
+                    console.error('지도 초기화 실패:', e);
+                }
             }, []);
 
             useEffect(() => {
-                if (!mapInstanceRef.current) return;
+                if (!mapInstanceRef.current || typeof naver === 'undefined' || !naver.maps) return;
+                
+                // 지도 사이즈 재계산 (화면 렌더링깨짐 방지)
+                setTimeout(() => {
+                    if (mapInstanceRef.current && naver.maps.Event) {
+                        naver.maps.Event.trigger(mapInstanceRef.current, 'resize');
+                    }
+                }, 100);
+
                 markersRef.current.forEach(m => m.setMap(null));
                 markersRef.current = [];
                 if (infoWindowRef.current) infoWindowRef.current.close();
 
-                const validRecords = records.filter(r => r.lat && r.lng);
+                const validRecords = (records || []).filter(r => r.lat && r.lng && !isNaN(Number(r.lat)) && !isNaN(Number(r.lng)));
                 const groups = {};
                 validRecords.forEach(r => {
                     const key = Number(r.lat).toFixed(5) + ',' + Number(r.lng).toFixed(5);
@@ -756,7 +773,15 @@
                 }
             }, [records]);
 
-            return <div id="admin-map" ref={mapRef}></div>;
+            return (
+                <div id="admin-map" ref={mapRef} style={{ width: '100%', minHeight: '380px' }}>
+                    {typeof naver === 'undefined' && (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-400 font-bold text-xs">
+                            지도를 불러오는 중...
+                        </div>
+                    )}
+                </div>
+            );
         };
 
         // ── 메인 앱 ──
