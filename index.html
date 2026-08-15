@@ -1330,6 +1330,8 @@
                         }
                     });
                     showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
+                } else if (result.success && (!result.data || result.data.length === 0)) {
+                    showToast('등록된 사진이 없거나 비밀번호가 일치하지 않습니다.', 'info');
                 } else if (!result.success) {
                     console.warn('내 마커 데이터 로드 실패:', result.error);
                 }
