@@ -1331,7 +1331,11 @@
                     });
                     showToast('기존 촬영 마커 ' + uniqueLocs.size + '건 표시', 'info');
                 } else if (result.success && (!result.data || result.data.length === 0)) {
-                    showToast('저장된 비밀번호가 일치하지 않거나 사진이 없습니다. 비밀번호를 다시 입력해 주세요.', 'error');
+                    // 신규 촬영자이거나 등록된 사진이 아직 없는 정상 상태
+                    console.log('등록된 촬영 사진 없음 (신규 촬영자)');
+                } else if (!result.success && result.code === 'INVALID_PW') {
+                    // 기존 사진이 있으나 저장된 비밀번호가 일치하지 않는 경우
+                    showToast('저장된 비밀번호가 일치하지 않습니다. 비밀번호를 다시 입력해 주세요.', 'error');
                     showPhotographerModal(true);
                 } else if (!result.success) {
                     console.warn('내 마커 데이터 로드 실패:', result.error);

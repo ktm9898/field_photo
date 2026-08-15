@@ -339,31 +339,42 @@ function handleGetMyPhotos(data) {
 
   const values = sheet.getRange(2, 1, lastRow - 1, 12).getValues();
   const records = [];
+  let nameCount = 0;
+
   for (let idx = 0; idx < values.length; idx++) {
     const row = values[idx];
     const rowPhotographer = String(row[2] || '').trim();
     const rowUserPw = String(row[11] || '').trim();
     const rowEmail = String(row[10] || '').trim();
-    // 촬영자 이름이 일치하고, (비밀번호가 일치하거나 기존에 비밀번호가 없던 행)인 경우 포함
-    if (rowPhotographer === photographer && (!rowUserPw || rowUserPw === userPw)) {
-      const photoUrl = String(row[6] || '');
-      if (!photoUrl) continue;
 
-      records.push({
-        datetime:     row[0] ? String(row[0]) : '',
-        bizNumber:    String(row[1] || ''),
-        photographer: rowPhotographer,
-        lat:          row[3] !== '' ? Number(row[3]) : null,
-        lng:          row[4] !== '' ? Number(row[4]) : null,
-        address:      String(row[5] || ''),
-        photoUrl:     photoUrl,
-        fileId:       String(row[7] || ''),
-        memo:         String(row[8] || ''),
-        fileName:     String(row[9] || ''),
-        email:        rowEmail,
-        userPw:       userPw
-      });
+    if (rowPhotographer === photographer) {
+      nameCount++;
+      // 비밀번호가 일치하거나, 행에 비밀번호가 미설정된 경우
+      if (!rowUserPw || rowUserPw === userPw) {
+        const photoUrl = String(row[6] || '');
+        if (!photoUrl) continue;
+
+        records.push({
+          datetime:     row[0] ? String(row[0]) : '',
+          bizNumber:    String(row[1] || ''),
+          photographer: rowPhotographer,
+          lat:          row[3] !== '' ? Number(row[3]) : null,
+          lng:          row[4] !== '' ? Number(row[4]) : null,
+          address:      String(row[5] || ''),
+          photoUrl:     photoUrl,
+          fileId:       String(row[7] || ''),
+          memo:         String(row[8] || ''),
+          fileName:     String(row[9] || ''),
+          email:        rowEmail,
+          userPw:       userPw
+        });
+      }
     }
+  }
+
+  // 기존 기록은 존재하나 비밀번호 불일치로 0건인 경우 구별
+  if (nameCount > 0 && records.length === 0) {
+    return jsonResponse({ success: false, error: '비밀번호가 일치하지 않습니다.', code: 'INVALID_PW' });
   }
 
   records.reverse(); // 최신순
