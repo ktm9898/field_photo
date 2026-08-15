@@ -1292,8 +1292,8 @@
                         const result = await res.json();
                         if (result.success && result.base64) {
                             // 하위 폴더 없이 root 레벨에 직접 파일 추가 (파일명 중복 방지 태깅)
-                            let rawName = p.fileName || `photo_${i + 1}.jpg`;
-                            if (p.bizNumber) {
+                            let rawName = p.fileName || `${p.bizNumber || 'photo'}_${i + 1}.jpg`;
+                            if (p.bizNumber && !rawName.startsWith(p.bizNumber)) {
                                 rawName = `${p.bizNumber}_${rawName}`;
                             }
                             let cleanName = rawName.replace(/[/\\?%*:|"<>]/g, '_');
