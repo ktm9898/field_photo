@@ -736,8 +736,28 @@
                 <input type="text" id="photographer-input" class="field-input" placeholder="예: 홍길동" maxlength="20">
             </div>
             <div class="field-group">
-                <label class="field-label">비밀번호<span class="required-dot">*</span></label>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <label class="field-label" style="margin-bottom:0;">비밀번호<span class="required-dot">*</span></label>
+                    <button type="button" id="toggle-change-pw-btn" onclick="toggleChangePwSection()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.3);color:#93c5fd;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">변경</button>
+                </div>
                 <input type="password" id="photographer-pw-input" class="field-input" placeholder="본인 사진 확인용 비밀번호" maxlength="20">
+            </div>
+            <!-- 비밀번호 변경 서브 영역 (기본 숨김) -->
+            <div id="change-pw-section" style="display:none;background:rgba(0,0,0,0.25);border:1px solid rgba(59,130,246,0.25);border-radius:12px;padding:14px;margin-bottom:14px;">
+                <div style="font-size:12px;font-weight:900;color:#93c5fd;margin-bottom:10px;">비밀번호 변경</div>
+                <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">현재 비밀번호</label>
+                    <input type="password" id="pw-change-current" class="field-input" placeholder="현재 비밀번호 입력" maxlength="20">
+                </div>
+                <div class="field-group" style="margin-bottom:8px;">
+                    <label class="field-label">새 비밀번호</label>
+                    <input type="password" id="pw-change-new" class="field-input" placeholder="새 비밀번호 입력" maxlength="20">
+                </div>
+                <div class="field-group" style="margin-bottom:10px;">
+                    <label class="field-label">새 비밀번호 확인</label>
+                    <input type="password" id="pw-change-confirm" class="field-input" placeholder="새 비밀번호 재입력" maxlength="20">
+                </div>
+                <button type="button" onclick="executePasswordChange()" style="width:100%;padding:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);border:none;border-radius:8px;font-size:12px;font-weight:900;color:white;cursor:pointer;font-family:'Noto Sans KR',sans-serif;">비밀번호 변경하기</button>
             </div>
             <div class="field-group">
                 <label class="field-label">이메일 (선택)</label>
@@ -1527,7 +1547,58 @@
             document.getElementById('photographer-input').value = saved;
             document.getElementById('photographer-pw-input').value = savedPw;
             document.getElementById('photographer-email-input').value = savedEmail;
+            toggleChangePwSection(false);
             document.getElementById('photographer-overlay').classList.remove('hidden');
+        }
+
+        function toggleChangePwSection(show) {
+            const section = document.getElementById('change-pw-section');
+            if (!section) return;
+            const target = show !== undefined ? show : (section.style.display === 'none');
+            section.style.display = target ? 'block' : 'none';
+            if (target) {
+                document.getElementById('pw-change-current').value = '';
+                document.getElementById('pw-change-new').value = '';
+                document.getElementById('pw-change-confirm').value = '';
+            }
+        }
+
+        async function executePasswordChange() {
+            const name = document.getElementById('photographer-input').value.trim();
+            const currentPw = document.getElementById('pw-change-current').value.trim();
+            const newPw = document.getElementById('pw-change-new').value.trim();
+            const confirmPw = document.getElementById('pw-change-confirm').value.trim();
+
+            if (!name) { showToast('이름을 먼저 입력해주세요.', 'error'); return; }
+            if (!currentPw) { showToast('현재 비밀번호를 입력해주세요.', 'error'); return; }
+            if (!newPw) { showToast('새 비밀번호를 입력해주세요.', 'error'); return; }
+            if (newPw !== confirmPw) { showToast('새 비밀번호가 서로 일치하지 않습니다.', 'error'); return; }
+            if (currentPw === newPw) { showToast('새 비밀번호가 현재 비밀번호와 동일합니다.', 'error'); return; }
+
+            showToast('비밀번호 변경 중...', 'info');
+            try {
+                const resp = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'updateUserPassword',
+                        key: API_SECRET,
+                        photographer: name,
+                        oldPw: currentPw,
+                        newPw: newPw
+                    })
+                });
+                const res = await resp.json();
+                if (!res.success) {
+                    showToast('비밀번호 변경 실패: ' + (res.error || '현재 비밀번호 불일치'), 'error');
+                    return;
+                }
+                localStorage.setItem('photographer_pw', newPw);
+                document.getElementById('photographer-pw-input').value = newPw;
+                toggleChangePwSection(false);
+                showToast(`비밀번호가 변경되었습니다! (${res.updatedCount || 0}건 동기화)`, 'success');
+            } catch (e) {
+                showToast('서버 응답 오류: ' + e.message, 'error');
+            }
         }
 
         async function savePhotographer() {
@@ -1540,33 +1611,13 @@
             const oldName = localStorage.getItem('photographer_name') || '';
             const oldPw = localStorage.getItem('photographer_pw') || '';
 
-            // 비밀번호 변경 또는 설정 업데이트 시 서버에서 기존 비밀번호 검증
-            if (oldName === name && oldPw !== pw) {
-                showToast('비밀번호 동기화 및 검증 중...', 'info');
-                try {
-                    const resp = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'updateUserPassword',
-                            key: API_SECRET,
-                            photographer: name,
-                            oldPw: oldPw,
-                            newPw: pw
-                        })
-                    });
-                    const res = await resp.json();
-                    if (!res.success) {
-                        showToast('비밀번호 변경 실패: ' + (res.error || '이전 비밀번호 불일치'), 'error');
-                        return; // 실패 시 팝업을 닫지 않고 로컬스토리지 저장 취소
-                    }
-                    showToast(`비밀번호가 변경되었습니다! (${res.updatedCount || 0}건 동기화)`, 'success');
-                } catch (e) {
-                    showToast('서버 응답 오류: ' + e.message, 'error');
-                    return; // 오류 시 중단
-                }
-            } else {
-                showToast('촬영자 설정 완료', 'success');
+            // 동일 사용자 정보에서 입력 비밀번호가 기존 비밀번호와 다르면 경고 및 차단
+            if (oldName === name && oldPw && oldPw !== pw) {
+                showToast('비밀번호가 일치하지 않습니다.', 'error');
+                return;
             }
+
+            showToast('촬영자 설정 완료', 'success');
 
             localStorage.setItem('photographer_name', name);
             localStorage.setItem('photographer_pw', pw);
