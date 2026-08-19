@@ -1008,6 +1008,94 @@
             );
         };
 
+        // ── 프로젝트 필터 선택 모달 ──
+        const ProjectFilterModal = ({ isOpen, onClose, selectedProject, projectList, onSelect }) => {
+            useEffect(() => {
+                const handleKeyDown = (e) => {
+                    if (e.key === 'Escape') onClose();
+                };
+                window.addEventListener('keydown', handleKeyDown);
+                return () => window.removeEventListener('keydown', handleKeyDown);
+            }, [onClose]);
+
+            if (!isOpen) return null;
+
+            const allOptions = [
+                { value: '', label: '전체 프로젝트' },
+                ...projectList.map(p => ({ value: p, label: p }))
+            ];
+
+            return (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+                    <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col ring-1 ring-slate-200 overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/70">
+                            <div className="flex items-center gap-2.5">
+                                <div className="w-9 h-9 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                                    <Icon name="folder" size={18} />
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-black text-slate-800">프로젝트 필터</h2>
+                                    <p className="text-xs text-slate-400 font-semibold mt-0.5">조회할 프로젝트를 선택해 주세요</p>
+                                </div>
+                            </div>
+                            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+                                <Icon name="x" size={18} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="p-4 max-h-72 overflow-y-auto custom-scroll space-y-1.5">
+                            {allOptions.map((opt) => {
+                                const isSelected = (selectedProject === opt.value);
+                                return (
+                                    <button
+                                        key={opt.value || '__ALL__'}
+                                        type="button"
+                                        onClick={() => {
+                                            onSelect(opt.value);
+                                            onClose();
+                                        }}
+                                        className={`w-full flex items-center justify-between px-3.5 py-3 rounded-xl border text-sm font-bold transition-all text-left ${
+                                            isSelected
+                                                ? 'bg-blue-50 border-blue-500 text-blue-700 shadow-sm'
+                                                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2.5 truncate">
+                                            <Icon 
+                                                name={opt.value === '' ? 'layers' : 'folder'} 
+                                                size={16} 
+                                                className={isSelected ? 'text-blue-600 shrink-0' : 'text-slate-400 shrink-0'} 
+                                            />
+                                            <span className="truncate">{opt.label}</span>
+                                        </div>
+                                        {isSelected && (
+                                            <div className="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                                                <Icon name="check" size={12} />
+                                            </div>
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="p-3 bg-slate-50 border-t border-slate-100 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                className="w-full py-2 bg-white border border-slate-200 hover:bg-slate-100 text-slate-600 text-xs font-bold rounded-lg transition-colors"
+                            >
+                                닫기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // ── 메인 앱 ──
         const AdminApp = () => {
             const [viewMode, setViewMode] = useState('personal');
@@ -1024,6 +1112,7 @@
             const [isMapExpanded, setIsMapExpanded] = useState(false);
             const [showFullscreenMap, setShowFullscreenMap] = useState(false);
             const [showBatchProjectModal, setShowBatchProjectModal] = useState(false);
+            const [showProjectFilterModal, setShowProjectFilterModal] = useState(false);
             const [selectedGroupKeys, setSelectedGroupKeys] = useState(new Set());
 
             const getGroupKey = useCallback((r) => {
@@ -1757,15 +1846,19 @@
                             {/* ── 모바일 검색 바 (< 768px) ── */}
                             <div className="md:hidden bg-white border-b border-slate-200 px-3 py-2.5 flex flex-col gap-2">
                                 <div className="flex items-center gap-1.5">
-                                    {/* 프로젝트 선택 드롭다운 (맨 앞 배치 & 선택 즉시 필터링) */}
+                                    {/* 프로젝트 선택 커스텀 버튼 (선택 시 깔끔한 모달 호출) */}
                                     <div className="relative flex-1">
-                                        <select value={searchProject} onChange={e => handleProjectChange(e.target.value)}
-                                            className="w-full h-[38px] px-2.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-blue-500">
-                                            <option value="">전체 프로젝트</option>
-                                            {projectList.map(p => (
-                                                <option key={p} value={p}>{p}</option>
-                                            ))}
-                                        </select>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowProjectFilterModal(true)}
+                                            className="w-full h-[38px] px-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-lg outline-none flex items-center justify-between hover:bg-slate-100 active:scale-95 transition-all text-left"
+                                        >
+                                            <div className="flex items-center gap-1.5 truncate">
+                                                <Icon name={searchProject ? "folder" : "layers"} size={14} className={searchProject ? "text-blue-600" : "text-slate-400"} />
+                                                <span className="truncate">{searchProject || "전체 프로젝트"}</span>
+                                            </div>
+                                            <Icon name="chevron-down" size={14} className="text-slate-400 shrink-0 ml-1" />
+                                        </button>
                                     </div>
 
                                     {/* 상세 필터(깔때기), 초기화, 새로고침 버튼 */}
@@ -1921,13 +2014,17 @@
                                     <div className="flex flex-wrap items-end gap-3">
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">프로젝트</label>
-                                            <select className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold focus:border-blue-500 outline-none w-36 bg-white"
-                                                value={searchProject} onChange={e => handleProjectChange(e.target.value)}>
-                                                <option value="">전체 프로젝트</option>
-                                                {projectList.map(p => (
-                                                    <option key={p} value={p}>{p}</option>
-                                                ))}
-                                            </select>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowProjectFilterModal(true)}
+                                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 w-44 flex items-center justify-between transition-all outline-none"
+                                            >
+                                                <div className="flex items-center gap-1.5 truncate">
+                                                    <Icon name={searchProject ? "folder" : "layers"} size={15} className={searchProject ? "text-blue-600" : "text-slate-400"} />
+                                                    <span className="truncate">{searchProject || "전체 프로젝트"}</span>
+                                                </div>
+                                                <Icon name="chevron-down" size={15} className="text-slate-400 shrink-0 ml-1" />
+                                            </button>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">시작일</label>
@@ -2273,6 +2370,17 @@
                                     totalPhotoCount={groupedRecords.filter(r => selectedGroupKeys.has(getGroupKey(r))).flatMap(r => r.photos).length}
                                     projectList={['미지정', ...projectList.filter(p => p !== '미지정')]}
                                     onApply={handleExecuteBatchUpdateProject}
+                                />
+                            )}
+
+                            {/* ── 프로젝트 필터 선택 모달 ── */}
+                            {showProjectFilterModal && (
+                                <ProjectFilterModal
+                                    isOpen={showProjectFilterModal}
+                                    onClose={() => setShowProjectFilterModal(false)}
+                                    selectedProject={searchProject}
+                                    projectList={['미지정', ...projectList.filter(p => p !== '미지정')]}
+                                    onSelect={handleProjectChange}
                                 />
                             )}
                         </div>
