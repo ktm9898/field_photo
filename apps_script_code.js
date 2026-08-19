@@ -233,8 +233,12 @@ function handleUpload(data) {
   );
   const file = folder.createFile(blob);
 
-  // 파일 공유 설정 (링크 보기 권한)
-  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  // 파일 공유 설정 (링크 보기 권한 - 조직 계정 보안 에러 대비 예외처리)
+  try {
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (shareErr) {
+    console.warn('파일 공유 권한 변경 경고:', shareErr);
+  }
   const fileId  = file.getId();
   const fileUrl = `https://drive.google.com/uc?export=view&id=${fileId}`;
 
