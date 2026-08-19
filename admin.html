@@ -2014,17 +2014,16 @@
                                     <div className="flex flex-wrap items-end gap-3">
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">프로젝트</label>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowProjectFilterModal(true)}
-                                                className="px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold bg-white hover:bg-slate-50 text-slate-700 w-44 flex items-center justify-between transition-all outline-none"
+                                            <select 
+                                                className="block px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold text-slate-700 bg-white focus:border-blue-500 outline-none w-44 cursor-pointer hover:border-slate-300 transition-colors"
+                                                value={searchProject} 
+                                                onChange={e => handleProjectChange(e.target.value)}
                                             >
-                                                <div className="flex items-center gap-1.5 truncate">
-                                                    <Icon name={searchProject ? "folder" : "layers"} size={15} className={searchProject ? "text-blue-600" : "text-slate-400"} />
-                                                    <span className="truncate">{searchProject || "전체 프로젝트"}</span>
-                                                </div>
-                                                <Icon name="chevron-down" size={15} className="text-slate-400 shrink-0 ml-1" />
-                                            </button>
+                                                <option value="">전체 프로젝트</option>
+                                                {['미지정', ...projectList.filter(p => p !== '미지정')].map(p => (
+                                                    <option key={p} value={p}>{p}</option>
+                                                ))}
+                                            </select>
                                         </div>
                                         <div className="space-y-1">
                                             <label className="text-xs font-bold text-slate-500">시작일</label>
